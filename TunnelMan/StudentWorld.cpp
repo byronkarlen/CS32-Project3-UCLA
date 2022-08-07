@@ -38,9 +38,9 @@ int StudentWorld::init()
 
     //Create a sample boulder
     
-//    Boulder* tempB = new Boulder(this, 20, 20);
-//    addActor(tempB);
-//    tempB->setVisible(true);
+    Boulder* tempB = new Boulder(this, 20, 20);
+    addActor(tempB);
+    tempB->setVisible(true);
     
     return GWSTATUS_CONTINUE_GAME; //must return this to continue the game
 }
@@ -239,4 +239,4 @@ GameWorld* createStudentWorld(string assetDir)
 {
     return new StudentWorld(assetDir);
 }
-
+ 
