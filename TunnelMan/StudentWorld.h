@@ -29,8 +29,9 @@ public:
     
     //Additional Functions:
     
+    bool spotContains4(int x, int y, char c) const;
     //returns whether an actor is at a location in the field
-    bool spotContains(int x, int y, char c) const;
+    bool spotContains(int x, int y, char c, double size = 1.0) const;
     
     //removes an actor (except for Earth and TunnelMan) from a location at the field
     void removeActor(Actor* a);
@@ -50,10 +51,6 @@ public:
     int getPlayerY() const;
     
     
-
-    
-    //returns whether or not a boulder can fall -- i.e. if there is earth (or the bottom of the screen) beneath it
-//    bool boulderCanFall(Boulder* b) const;
     
     //returns whether a squirt can continue moving one square in its direction
 //    bool squirtCanContinueMoving(Squirt* s) const;
@@ -63,8 +60,6 @@ public:
 
 
 private:
-    //Actor* m_gameRepresentation[VIEW_HEIGHT][VIEW_WIDTH];
-    //std::string m_gameRepresentation[VIEW_HEIGHT][VIEW_WIDTH];
     std::vector<char> m_gameRepresentation[VIEW_HEIGHT][VIEW_WIDTH];
     Earth* m_earthTracker[VIEW_HEIGHT-4][VIEW_WIDTH];
     std::list<Actor*> m_gameObjects;
@@ -78,6 +73,7 @@ private:
     void removeActorFromGameObjects(Actor* a);
     void addActorToGameRepresentation(int x, int y, char c);
     
+    bool inField(int x, int y) const;
 //    void setDisplayText() const;
 };
 

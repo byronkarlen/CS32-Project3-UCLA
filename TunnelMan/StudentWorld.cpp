@@ -35,7 +35,8 @@ int StudentWorld::init()
     m_player = new TunnelMan(this); //Create a new TunnelMan
     m_player->setVisible(true); //Make the TunnelMan visible
     m_gameRepresentation[60][30].push_back('T'); //The character 'T' represents the TunnelMan at the given location in the field
-
+    
+    assert(spotContains(33, 63, 'T'));
     //Create a sample boulder
     
     Boulder* tempB = new Boulder(this, 20, 20);
@@ -146,14 +147,32 @@ void StudentWorld::moveActor(Actor* a){
     }
         
 }
-
-bool StudentWorld::spotContains(int x, int y, char c) const{
-    for(int i = 0; i < m_gameRepresentation[y][x].size(); i++){
-        if(m_gameRepresentation[y][x][i] == c)
-            return true;
+bool StudentWorld::spotContains4(int x, int y, char c) const{
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++){
+            if(spotContains(x+j, y+i, c)){
+                return true;
+            }
+        }
     }
     return false;
 }
+bool StudentWorld::spotContains(int x, int y, char c, double size) const{
+    int nSquares = size*4;
+    for(int j = 0; j < nSquares; j++){
+        for(int k = 0; k < nSquares; k++){
+            for(int i = 0; i < m_gameRepresentation[y-j][x-k].size(); i++){
+                if(inField(x-k, y-j) && m_gameRepresentation[y-j][x-k][i] == c)
+                    return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+
+
 
 void StudentWorld::removeActor(Actor* a){
     removeActorFromGameRepresentation(a->getX(), a->getY(), a->getID());
@@ -207,6 +226,14 @@ void StudentWorld::removeActorFromGameObjects(Actor *a){
 
 void StudentWorld::addActorToGameObjects(Actor* a){
     m_gameObjects.push_back(a);
+}
+
+bool StudentWorld::inField(int x, int y) const{
+    if(x < 0 || x > VIEW_WIDTH)
+        return false;
+    if(y < 0 || y > VIEW_WIDTH)
+        return false;
+    return true;
 }
 
 

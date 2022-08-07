@@ -68,7 +68,7 @@ void TunnelMan::doSomething(){
     bool earthNeedsToBeRemoved = false;
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 4; j++){
-            if(getWorld()->spotContains(x+i, y+j, 'E')){
+            if(getWorld()->spotContains(x+i, y+j, 'E', 0.25)){
                 getWorld()->removeEarth(x+i, y+j);
                 getWorld()->playSound(SOUND_DIG);
                 earthNeedsToBeRemoved = true;
@@ -102,24 +102,24 @@ void TunnelMan::doSomething(){
         else{
             //*the TunnelMan cannot occupy a square that is less than or equal to a radius of 3 away from the center of any Boulder.
             if(ch == KEY_PRESS_RIGHT){
-                if(getDirection() == right && getX() < VIEW_WIDTH-4)
+                if(getDirection() == right && getX() < VIEW_WIDTH-4 && !getWorld()->spotContains4(x+1, y, 'B'))
                     getWorld()->moveActor(this);
                 else
                     setDirection(right);
             }
-            if(ch == KEY_PRESS_LEFT && getX() > 0){
+            if(ch == KEY_PRESS_LEFT && getX() > 0 && !getWorld()->spotContains4(x-1, y, 'B')){
                 if(getDirection() == left)
                     getWorld()->moveActor(this);
                 else
                     setDirection(left);
             }
-            if(ch == KEY_PRESS_UP && getY() < VIEW_HEIGHT-4){
+            if(ch == KEY_PRESS_UP && getY() < VIEW_HEIGHT-4 && !getWorld()->spotContains4(x, y+1, 'B')){
                 if(getDirection() == up)
                     getWorld()->moveActor(this);
                 else
                     setDirection(up);
             }
-            if(ch == KEY_PRESS_DOWN && getY() > 0){
+            if(ch == KEY_PRESS_DOWN && getY() > 0 && !getWorld()->spotContains4(x, y-1, 'B')){
                 if(getDirection() == down)
                     getWorld()->moveActor(this);
                 else
