@@ -165,12 +165,14 @@ void Boulder::doSomething(){
     if(state == 2){//Falling state
         if(boulderCanFall()){
             getWorld()->moveActor(this);
+            getWorld()->playSound(SOUND_FALLING_ROCK);
+            //TODO: If boulder comes within a radius of 3 of any characters, it must cause 100 points of annoyance to those actors
         }
         else{
             setLiveStatus(false); //Set the boulder to dead
         }
         
-        //TODO: If boulder comes within a radius of 3 of any characters, it must cause 100 points of annoyance to those actors
+
     }
 }
 
@@ -181,7 +183,7 @@ bool Boulder::boulderCanFall() const{
         return false;
     
     for(int i = 0; i < 4; i++){
-        if(getWorld()->spotContains(x, y-1, 'E') || getWorld()->spotContains(x, y-1, 'B')){
+        if(getWorld()->spotContains(x, y-1, 'E', 0.25) || getWorld()->spotContains(x, y-1, 'B')){
             return false;
         }
     }

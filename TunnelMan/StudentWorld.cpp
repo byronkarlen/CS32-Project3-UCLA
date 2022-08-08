@@ -10,6 +10,14 @@ StudentWorld::StudentWorld(std::string assetDir) : GameWorld(assetDir){}
 
 int StudentWorld::init()
 {
+    
+    //Create a sample boulder
+    
+    Boulder* tempB = new Boulder(this, 20, 40);
+    addActor(tempB);
+    tempB->setVisible(true);
+    
+    
     //set earth tracker to have all nullptrs:
     for(int i = 0; i < VIEW_HEIGHT-4; i++){
         for(int j = 0; j < VIEW_WIDTH; j++){
@@ -22,7 +30,7 @@ int StudentWorld::init()
         for(int row = 0; row < VIEW_HEIGHT-4; row++){
             
             //If the current location falls outside of the central tunnel
-            if( (col < 30 || col > 33) || row < 4) {
+            if(((col < 30 || col > 33) || row < 4) && !spotContains(col, row, 'B')) {
                 temp = new Earth(this, col, row); //Create a new earth at the given location
                 temp->setVisible(true); //Make the earth visible
                 m_earthTracker[row][col] = temp; //Add the earth pointer to the earthTracker
@@ -36,17 +44,15 @@ int StudentWorld::init()
     m_player->setVisible(true); //Make the TunnelMan visible
     m_gameRepresentation[60][30].push_back('T'); //The character 'T' represents the TunnelMan at the given location in the field
     
-    assert(spotContains(33, 63, 'T'));
-    //Create a sample boulder
-    
-    Boulder* tempB = new Boulder(this, 20, 20);
-    addActor(tempB);
-    tempB->setVisible(true);
+
     
     return GWSTATUS_CONTINUE_GAME; //must return this to continue the game
 }
 
 int StudentWorld::move(){
+    
+    if(m_player->getLiveStatus())
+        m_player->doSomething();
     
     list<Actor*>::iterator it;
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
@@ -54,10 +60,13 @@ int StudentWorld::move(){
             (*it)->doSomething();
     }
     
-    if(m_player->getLiveStatus()){
-        m_player->doSomething();
-        return GWSTATUS_CONTINUE_GAME;
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if(!(*it)->getLiveStatus())
+            removeActor(*it);
     }
+    
+    if(m_player->getLiveStatus())
+        return GWSTATUS_CONTINUE_GAME;
     else{
         decLives();
         return GWSTATUS_PLAYER_DIED;
@@ -161,9 +170,11 @@ bool StudentWorld::spotContains(int x, int y, char c, double size) const{
     int nSquares = size*4;
     for(int j = 0; j < nSquares; j++){
         for(int k = 0; k < nSquares; k++){
-            for(int i = 0; i < m_gameRepresentation[y-j][x-k].size(); i++){
-                if(inField(x-k, y-j) && m_gameRepresentation[y-j][x-k][i] == c)
-                    return true;
+            if(inField(x-k, y-j)){
+                for(int i = 0; i < m_gameRepresentation[y-j][x-k].size(); i++){
+                    if(m_gameRepresentation[y-j][x-k][i] == c)
+                        return true;
+                }
             }
         }
     }
@@ -191,11 +202,20 @@ int StudentWorld::getPlayerY() const{
     return m_player->getY();
 }
 
-Actor* StudentWorld::findActor(int x, int y, char c) const{
-    list<Actor*>::const_iterator it;
-    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if((*it)->getX() == x && (*it)->getY() == y && (*it)->getID() == c)
-            return *it;
+Actor* StudentWorld::findActor(int x, int y, char c, double size) const{
+    int nSquares = size*4;
+    for(int i = 0; i < nSquares; i++){
+        for(int j = 0; j < nSquares; j++){
+            for(int k = 0; k < m_gameRepresentation[y-i][x-j].size(); k++){
+                if(m_gameRepresentation[y-i][x-j][k] == c){
+                    list<Actor*>::const_iterator it;
+                    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+                        if((*it)->getX() == x && (*it)->getY() == y && (*it)->getID() == c)
+                            return *it;
+                    }
+                }
+            }
+        }
     }
     return nullptr;
 }
@@ -218,6 +238,7 @@ void StudentWorld::addActorToGameRepresentation(int x, int y, char c){
 void StudentWorld::removeActorFromGameObjects(Actor *a){
     for(list<Actor*>::iterator it2 = m_gameObjects.begin(); it2 != m_gameObjects.end(); it2++){
         if(*it2 == a){
+            delete a;
             m_gameObjects.erase(it2);
             break;
         }
@@ -248,19 +269,6 @@ bool StudentWorld::inField(int x, int y) const{
 
 
 
-//void StudentWorld::setDisplayText() const{
-//    int level = getCurrentGameLevel();
-//    int lives = getNumLivesLeft();
-//    int health = getCurrentHealth();
-//    int squirts = getSquirtsLeftInSquirtGun();
-//    int gold = getPlayerGoldCount();
-//    int barrelsLeft = getNumberOfBarrelsRemainingToBePickedUp();
-//    int sonar = getPlayerSonarChargeCount();
-//    int score = getScore();
-//
-//    string s = ...
-//
-//}
 
 GameWorld* createStudentWorld(string assetDir)
 {

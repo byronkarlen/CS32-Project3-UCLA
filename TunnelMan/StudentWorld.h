@@ -29,6 +29,7 @@ public:
     
     //Additional Functions:
     
+    //returns whether an actor is located within a 4x4 area of the field
     bool spotContains4(int x, int y, char c) const;
     //returns whether an actor is at a location in the field
     bool spotContains(int x, int y, char c, double size = 1.0) const;
@@ -45,18 +46,13 @@ public:
     //moves the actor one square in the field in the direction it is faced
     void moveActor(Actor* a);
     
-    Actor* findActor(int x, int y, char c) const;
+    //Returns an actor (with the charID given) who is present at the given location in the field
+    Actor* findActor(int x, int y, char c, double size=1.0) const;
     
     int getPlayerX() const;
     int getPlayerY() const;
     
-    
-    
-    //returns whether a squirt can continue moving one square in its direction
-//    bool squirtCanContinueMoving(Squirt* s) const;
-    
-    
-    
+
 
 
 private:
