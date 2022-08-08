@@ -27,10 +27,12 @@ StudentWorld* Actor::getWorld() const{
 
 
 Earth::Earth(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_EARTH, startX, startY, right, 0.25, 3){
+    
+    setVisible(true); //Earths are set to be visible when they are created
 }
 
-char Earth::getID() const{
-    return 'E';
+char Earth::getGameID() const{
+    return 'E'; //Earths have a character ID of 'E'
 }
 
 
@@ -53,9 +55,10 @@ TunnelMan::TunnelMan(StudentWorld* myWorld) : Character(myWorld, TID_PLAYER, 30,
     m_numWater = 5;
     m_numSonarCharges = 1;
     m_numNuggets = 0;
+    setVisible(true); //TunnelMan starts out as visible
 }
 
-char TunnelMan::getID() const{
+char TunnelMan::getGameID() const{
     return 'T';
 }
 
@@ -68,7 +71,7 @@ void TunnelMan::doSomething(){
     bool earthNeedsToBeRemoved = false;
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 4; j++){
-            if(getWorld()->spotContains(x+i, y+j, 'E', 0.25)){
+            if(getWorld()->isEarthAt(x+i, y+j)){
                 getWorld()->removeEarth(x+i, y+j);
                 getWorld()->playSound(SOUND_DIG);
                 earthNeedsToBeRemoved = true;
@@ -102,26 +105,34 @@ void TunnelMan::doSomething(){
         else{
             //*the TunnelMan cannot occupy a square that is less than or equal to a radius of 3 away from the center of any Boulder.
             if(ch == KEY_PRESS_RIGHT){
-                if(getDirection() == right && getX() < VIEW_WIDTH-4 && !getWorld()->spotContains4(x+1, y, 'B'))
-                    getWorld()->moveActor(this);
+                if(getDirection() == right){
+                    if(canMove(right))
+                       moveTo(getX() + 1, getY());
+                }
                 else
                     setDirection(right);
             }
-            if(ch == KEY_PRESS_LEFT && getX() > 0 && !getWorld()->spotContains4(x-1, y, 'B')){
-                if(getDirection() == left)
-                    getWorld()->moveActor(this);
+            if(ch == KEY_PRESS_LEFT){
+                if(getDirection() == left){
+                    if(canMove(left))
+                        moveTo(getX() - 1, getY());
+                }
                 else
                     setDirection(left);
             }
-            if(ch == KEY_PRESS_UP && getY() < VIEW_HEIGHT-4 && !getWorld()->spotContains4(x, y+1, 'B')){
-                if(getDirection() == up)
-                    getWorld()->moveActor(this);
+            if(ch == KEY_PRESS_UP){
+                if(getDirection() == up){
+                    if(canMove(up))
+                        moveTo(getX(), getY() + 1);
+                }
                 else
                     setDirection(up);
             }
-            if(ch == KEY_PRESS_DOWN && getY() > 0 && !getWorld()->spotContains4(x, y-1, 'B')){
-                if(getDirection() == down)
-                    getWorld()->moveActor(this);
+            if(ch == KEY_PRESS_DOWN){
+                if(getDirection() == down){
+                    if(canMove(down))
+                        moveTo(getX(), getY() - 1);
+                }
                 else
                     setDirection(down);
             }
@@ -130,66 +141,116 @@ void TunnelMan::doSomething(){
 }
 
 
-//Boulder class method implementations:
-Boulder::Boulder(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BOULDER, startX, startY, down, 1, 1.0){
-    state = 0; //Boulders start out in a stable state (0 = stable, 1 = waiting, 2 = falling)
-    ticksElapsed = -1; //To track how many ticks have elapsed after entering waiting state. ticksElapsed = -1 when the boulder is not in a waiting state
-}
-
-
-char Boulder::getID() const{
-    return 'B';
-}
-
-void Boulder::doSomething(){
-    if(!getLiveStatus())
-        return;
-
-    if(state == 0){ //Stable state
-        if(boulderCanFall()){
-            state = 1; //Waiting state
-            ticksElapsed++;
-        }
-    }
-    
-    if(state == 1){ //Waiting state
-        if(ticksElapsed > 30){
-            state = 2; //Falling state
-            getWorld()->playSound(SOUND_FALLING_ROCK);
-            ticksElapsed = -1;
-        }
-        else{
-            ticksElapsed++;
-        }
-    }
-    if(state == 2){//Falling state
-        if(boulderCanFall()){
-            getWorld()->moveActor(this);
-            getWorld()->playSound(SOUND_FALLING_ROCK);
-            //TODO: If boulder comes within a radius of 3 of any characters, it must cause 100 points of annoyance to those actors
-        }
-        else{
-            setLiveStatus(false); //Set the boulder to dead
-        }
-        
-
-    }
-}
-
-bool Boulder::boulderCanFall() const{
-    int x = getX();
-    int y = getY();
-    if(y == 0)
-        return false;
-    
-    for(int i = 0; i < 4; i++){
-        if(getWorld()->spotContains(x, y-1, 'E', 0.25) || getWorld()->spotContains(x, y-1, 'B')){
+bool TunnelMan::canMove(Direction d) const{
+    if(d == right){
+        if(getX() >= VIEW_WIDTH - actorSize)
             return false;
-        }
+        if(getWorld()->findActor(getX()+1, getY(), 'B') != nullptr)
+            return false;
+        else
+            return true;
+    }
+    if(d == left){
+        if(getX() <= 0)
+            return false;
+        if(getWorld()->findActor(getX()-1, getY(), 'B') != nullptr)
+            return false;
+        else
+            return true;
+    }
+    if(d == up){
+        if(getY() >= VIEW_HEIGHT - actorSize)
+            return false;
+        if(getWorld()->findActor(getX(), getY()+1, 'B') != nullptr)
+            return false;
+        else
+            return true;
+    }
+    if(d == down){
+        if(getY() <= 0)
+            return false;
+        if(getWorld()->findActor(getX()-1, getY(), 'B') != nullptr)
+            return false;
+        else
+            return true;
     }
     
-    return true;
+    return false; //This will never be hit
 }
+
+
+//Boulder class method implementations:
+//Boulder::Boulder(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BOULDER, startX, startY, down, 1, 1.0){
+//    state = 0; //Boulders start out in a stable state (0 = stable, 1 = waiting, 2 = falling)
+//    ticksElapsed = -1; //To track how many ticks have elapsed after entering waiting state. ticksElapsed = -1 when the boulder is not in a waiting state
+//}
+//
+//
+//char Boulder::getGameID() const{
+//    return 'B';
+//}
+//
+//void Boulder::doSomething(){
+//    if(!getLiveStatus())
+//        return;
+//
+//    if(state == 0){ //Stable state
+//        if(boulderCanFall()){
+//            state = 1; //Waiting state
+//            ticksElapsed++;
+//        }
+//    }
+//
+//    if(state == 1){ //Waiting state
+//        if(ticksElapsed > 30){
+//            state = 2; //Falling state
+//            getWorld()->playSound(SOUND_FALLING_ROCK);
+//            ticksElapsed = -1;
+//        }
+//        else{
+//            ticksElapsed++;
+//        }
+//    }
+//    if(state == 2){//Falling state
+//        if(boulderCanFall()){
+//            getWorld()->moveActor(this);
+//            getWorld()->playSound(SOUND_FALLING_ROCK);
+//            smushCharacters();
+//        }
+//        else{
+//            setLiveStatus(false); //Set the boulder to dead
+//        }
+//
+//
+//    }
+//}
+//
+//void Boulder:: smushCharacters(){
+//    int x = getX() - 1;
+//    int y = getY() - 1;
+//    for(int i = 0; i < 6; i++){
+//        for(int j = 0; j < 6; j++){
+//            Actor* doomed = getWorld()->findActor(x, y, 'T');
+//            if(doomed != nullptr && doomed->getLiveStatus()){
+//                doomed->annoy(100);
+//            }
+//        }
+//    }
+//}
+//bool Boulder::boulderCanFall() const{
+//    int x = getX();
+//    int y = getY();
+//    if(y == 0)
+//        return false;
+//
+//    for(int i = 0; i < 4; i++){
+//        if(getWorld()->spotContains(x, y-1, 'E', 0.25) || getWorld()->spotContains(x, y-1, 'B')){
+//            return false;
+//        }
+//    }
+//
+//    return true;
+//}
 
 
 //Squirt class method implementations

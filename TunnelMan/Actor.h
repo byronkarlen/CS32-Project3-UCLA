@@ -15,7 +15,7 @@ public:
     
     StudentWorld* getWorld() const;
     
-    virtual char getID() const = 0;
+    virtual char getGameID() const = 0;
     
     //Default annoy function on an actor does nothing
     virtual void annoy(int howMuch){}
@@ -35,7 +35,7 @@ public:
     
     //Earth doesn't do anything
     virtual void doSomething(){}
-    virtual char getID() const;
+    virtual char getGameID() const;
     
 };
 
@@ -56,27 +56,38 @@ public:
     
     virtual void doSomething();
     
-    virtual char getID() const;
+    virtual char getGameID() const;
 private:
     int m_numWater;
     int m_numSonarCharges;
     int m_numNuggets;
-};
-
-
-class Boulder : public Actor{
-public:
-    Boulder(StudentWorld* myWorld, int startX, int startY);
-    virtual char getID() const;
-    virtual void doSomething();
-private:
-    int state; //0 for stable, 1 for waiting, 2 for falling
-    int ticksElapsed;
     
-    bool boulderCanFall() const;
+    //Returns whether the tunnelman can move one box in the given direction
+    bool canMove(Direction d) const;
+    
 };
 
-//class Squirt : public Actor{
+
+//class Boulder : public Actor{
+//public:
+//    Boulder(StudentWorld* myWorld, int startX, int startY);
+//    virtual char getGameID() const;
+//    virtual void doSomething();
+//private:
+//    int state; //0 for stable, 1 for waiting, 2 for falling
+//    int ticksElapsed;
+//    void smushCharacters(); 
+//    bool boulderCanFall() const;
+//};
+//
+//class Goodie : public Actor{
+//public:
+//    Goodie(StudentWorld* myWorld);
+//private:
+//    
+//};
+
+//class Squirt : public Goodie{
 //public:
 //    Squirt(StudentWorld* myWorld, TunnelMan* owner);
 //    virtual char getID() const;
