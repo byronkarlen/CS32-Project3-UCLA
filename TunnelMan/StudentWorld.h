@@ -9,6 +9,7 @@
 
 //Constants:
 const int actorSize = 4;
+const int ticksBeforeFalling = 30; 
 
 class Actor;
 class Earth;
@@ -45,19 +46,21 @@ public:
     //returns a pointer to an actor (with a certain characterID) found at the given location. If none is found, returns nullptr
     Actor* findActor(int x, int y, char c) const;
     
+    
     //returns the x-coordinate of the TunnelMan
     int getPlayerX() const;
     //returns the y-coordinate of the TunnelMan
     int getPlayerY() const;
 
-
+    bool inField(int x, int y) const;
+    
 private:
     Earth* m_earthTracker[VIEW_HEIGHT][VIEW_WIDTH];
     std::list<Actor*> m_gameObjects;
     TunnelMan* m_player;
     
     //returns whether a given coordinate is located within the game's playing field
-    bool inField(int x, int y) const;
+
 };
 
 #endif // STUDENTWORLD_H_

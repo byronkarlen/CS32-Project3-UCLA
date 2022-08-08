@@ -64,21 +64,22 @@ private:
     
     //Returns whether the tunnelman can move one box in the given direction
     bool canMove(Direction d) const;
+    bool boulderAt(int x, int y) const;
     
 };
 
 
-//class Boulder : public Actor{
-//public:
-//    Boulder(StudentWorld* myWorld, int startX, int startY);
-//    virtual char getGameID() const;
-//    virtual void doSomething();
-//private:
-//    int state; //0 for stable, 1 for waiting, 2 for falling
-//    int ticksElapsed;
-//    void smushCharacters(); 
-//    bool boulderCanFall() const;
-//};
+class Boulder : public Actor{
+public:
+    Boulder(StudentWorld* myWorld, int startX, int startY);
+    virtual char getGameID() const;
+    virtual void doSomething();
+private:
+    int state; //0 for stable, 1 for waiting, 2 for falling
+    int ticksElapsed;
+    void smushCharacters(); 
+    bool boulderCanFall() const;
+};
 //
 //class Goodie : public Actor{
 //public:

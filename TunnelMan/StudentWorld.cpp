@@ -29,6 +29,16 @@ int StudentWorld::init()
         }
     }
     
+    Boulder* b = new Boulder(this, 20, 40);
+    addActor(b);
+    
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++){
+            assert(findActor(20+j, 40+i, 'B') == b);
+        }
+    }
+    assert(findActor(19, 39, 'B') == nullptr);
+    assert(findActor(24, 44, 'B') == nullptr);
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
     
@@ -40,16 +50,16 @@ int StudentWorld::move(){
     if(m_player->getLiveStatus())
         m_player->doSomething();
     
-    list<Actor*>::iterator it;
-    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if((*it)->getLiveStatus())
-            (*it)->doSomething();
-    }
-    
-    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if(!(*it)->getLiveStatus())
-            removeActor(*it);
-    }
+//    list<Actor*>::iterator it;
+//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+//        if((*it)->getLiveStatus())
+//            (*it)->doSomething();
+//    }
+//
+//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+//        if(!(*it)->getLiveStatus())
+//            removeActor(*it);
+//    }
     
     if(m_player->getLiveStatus())
         return GWSTATUS_CONTINUE_GAME;
@@ -109,11 +119,11 @@ Actor* StudentWorld::findActor(int x, int y, char c) const{
     list<Actor*>::const_iterator it;
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
         
-        for(int i = x; i > x - actorSize; i--){
-            for(int j = y; j > j - actorSize; j--){
+        for(int i = 0; i < actorSize; i++){
+            for(int j = 0; j < actorSize; j++){
                 
                 if(inField(x, y)){
-                    if((*it)->getX() == x && (*it)->getY() == y && (*it)->getGameID() == c)
+                    if((*it)->getX() == x-j && (*it)->getY() == y-i && (*it)->getGameID() == c)
                         return *it;
                 }
                 

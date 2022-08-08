@@ -69,8 +69,8 @@ void TunnelMan::doSomething(){
     int x = getX();
     int y = getY();
     bool earthNeedsToBeRemoved = false;
-    for(int i = 0; i < 4; i++){
-        for(int j = 0; j < 4; j++){
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
             if(getWorld()->isEarthAt(x+i, y+j)){
                 getWorld()->removeEarth(x+i, y+j);
                 getWorld()->playSound(SOUND_DIG);
@@ -145,7 +145,7 @@ bool TunnelMan::canMove(Direction d) const{
     if(d == right){
         if(getX() >= VIEW_WIDTH - actorSize)
             return false;
-        if(getWorld()->findActor(getX()+1, getY(), 'B') != nullptr)
+        if(boulderAt(getX() + 1, getY()))
             return false;
         else
             return true;
@@ -153,7 +153,7 @@ bool TunnelMan::canMove(Direction d) const{
     if(d == left){
         if(getX() <= 0)
             return false;
-        if(getWorld()->findActor(getX()-1, getY(), 'B') != nullptr)
+        if(boulderAt(getX() - 1, getY()))
             return false;
         else
             return true;
@@ -161,7 +161,7 @@ bool TunnelMan::canMove(Direction d) const{
     if(d == up){
         if(getY() >= VIEW_HEIGHT - actorSize)
             return false;
-        if(getWorld()->findActor(getX(), getY()+1, 'B') != nullptr)
+        if(boulderAt(getX(), getY() + 1))
             return false;
         else
             return true;
@@ -169,7 +169,7 @@ bool TunnelMan::canMove(Direction d) const{
     if(d == down){
         if(getY() <= 0)
             return false;
-        if(getWorld()->findActor(getX()-1, getY(), 'B') != nullptr)
+        if(boulderAt(getX(), getY() - 1))
             return false;
         else
             return true;
@@ -178,79 +178,98 @@ bool TunnelMan::canMove(Direction d) const{
     return false; //This will never be hit
 }
 
+bool TunnelMan::boulderAt(int x, int y) const{
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(getWorld()->inField(x + j, y + i)){
+                if(getWorld()->findActor(x + j, y + i, 'B') != nullptr){
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
 
 //Boulder class method implementations:
-//Boulder::Boulder(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BOULDER, startX, startY, down, 1, 1.0){
-//    state = 0; //Boulders start out in a stable state (0 = stable, 1 = waiting, 2 = falling)
-//    ticksElapsed = -1; //To track how many ticks have elapsed after entering waiting state. ticksElapsed = -1 when the boulder is not in a waiting state
-//}
-//
-//
-//char Boulder::getGameID() const{
-//    return 'B';
-//}
-//
-//void Boulder::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//
-//    if(state == 0){ //Stable state
-//        if(boulderCanFall()){
-//            state = 1; //Waiting state
-//            ticksElapsed++;
-//        }
-//    }
-//
-//    if(state == 1){ //Waiting state
-//        if(ticksElapsed > 30){
-//            state = 2; //Falling state
-//            getWorld()->playSound(SOUND_FALLING_ROCK);
-//            ticksElapsed = -1;
-//        }
-//        else{
-//            ticksElapsed++;
-//        }
-//    }
-//    if(state == 2){//Falling state
-//        if(boulderCanFall()){
-//            getWorld()->moveActor(this);
-//            getWorld()->playSound(SOUND_FALLING_ROCK);
-//            smushCharacters();
-//        }
-//        else{
-//            setLiveStatus(false); //Set the boulder to dead
-//        }
-//
-//
-//    }
-//}
-//
-//void Boulder:: smushCharacters(){
-//    int x = getX() - 1;
-//    int y = getY() - 1;
-//    for(int i = 0; i < 6; i++){
-//        for(int j = 0; j < 6; j++){
-//            Actor* doomed = getWorld()->findActor(x, y, 'T');
-//            if(doomed != nullptr && doomed->getLiveStatus()){
-//                doomed->annoy(100);
-//            }
-//        }
-//    }
-//}
-//bool Boulder::boulderCanFall() const{
-//    int x = getX();
-//    int y = getY();
-//    if(y == 0)
-//        return false;
-//
-//    for(int i = 0; i < 4; i++){
-//        if(getWorld()->spotContains(x, y-1, 'E', 0.25) || getWorld()->spotContains(x, y-1, 'B')){
-//            return false;
-//        }
-//    }
-//
-//    return true;
-//}
+Boulder::Boulder(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BOULDER, startX, startY, down, 1, 1.0){
+    setVisible(true); //Boulders start out visible
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            getWorld()->removeEarth(startX + j, startY + i);
+        }
+    }
+    state = 0; //Boulders start out in a stable state (0 = stable, 1 = waiting, 2 = falling)
+    ticksElapsed = -1; //To track how many ticks have elapsed after entering waiting state. ticksElapsed = -1 when the boulder is not in a waiting state
+}
+
+
+char Boulder::getGameID() const{
+    return 'B';
+}
+
+void Boulder::doSomething(){
+    if(!getLiveStatus())
+        return;
+
+    if(state == 0){ //Stable state
+        if(boulderCanFall()){
+            state = 1; //Waiting state
+            ticksElapsed++;
+        }
+    }
+
+    if(state == 1){ //Waiting state
+        if(ticksElapsed > ticksBeforeFalling){
+            state = 2; //Falling state
+            getWorld()->playSound(SOUND_FALLING_ROCK);
+            ticksElapsed = -1;
+        }
+        else{
+            ticksElapsed++;
+        }
+    }
+    if(state == 2){//Falling state
+        if(boulderCanFall()){
+            getWorld()->playSound(SOUND_FALLING_ROCK);
+            //smushCharacters();
+            moveTo(getX(), getY() - 1);
+        }
+        else{
+            setLiveStatus(false); //Set the boulder to dead
+        }
+
+
+    }
+}
+
+void Boulder:: smushCharacters(){
+    int x = getX() - 1;
+    int y = getY() - 1;
+    for(int i = 0; i < 6; i++){
+        for(int j = 0; j < 6; j++){
+            Actor* doomed = getWorld()->findActor(x, y, 'T');
+            if(doomed != nullptr && doomed->getLiveStatus()){
+                doomed->annoy(100);
+            }
+        }
+    }
+}
+bool Boulder::boulderCanFall() const{
+    int x = getX();
+    int y = getY();
+    if(y == 0)
+        return false; //Hits the bottom of the screen so boulder cannot fall any longer
+    
+    for(int i = 0; i < actorSize; i++){
+        if(getWorld()->isEarthAt(x + i, y - 1) || getWorld()->findActor(x + i, y - 1, 'B')){
+            return false;
+        }
+    }
+
+    return true;
+}
 
 
 //Squirt class method implementations
