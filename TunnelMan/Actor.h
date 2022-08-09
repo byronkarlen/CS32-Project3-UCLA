@@ -103,7 +103,15 @@ private:
 };
 
 
-
+class Barrel : public Actor{
+public:
+    Barrel(StudentWorld* myWorld, int startX, int startY);
+    void doSomething();
+    char getGameID() const;
+private:
+    bool m_isVisible;
+    bool tunnelManNearby(int radius) const;
+};
 #endif // ACTOR_H_
  
  

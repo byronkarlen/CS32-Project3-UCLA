@@ -1,6 +1,6 @@
 #include "Actor.h"
 #include "StudentWorld.h"
-
+#include <cmath>
 
 //Actor class method implementations:
 
@@ -416,5 +416,48 @@ bool Squirt::annoyNearbyProtestors(){
 }
 
  
+//Barrel Class Function Implementations:
 
+Barrel::Barrel(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BARREL, startX, startY, right, 1.0, 2){
+    setVisible(false); //Barrels start out as invisible
+    m_isVisible = false;
+}
 
+char Barrel::getGameID() const{
+    return 'O'; //Barrels have a character/game ID of 'O' (Oil)
+}
+
+void Barrel::doSomething(){
+    if(!getLiveStatus())
+        return;
+    
+    if(tunnelManNearby(3)){
+        setLiveStatus(false);
+        getWorld()->playSound(SOUND_FOUND_OIL);
+        getWorld()->increaseScore(1000);
+        
+        //If necessary, inform StudentWorld object that it has been picked up
+    }
+    
+    if(!m_isVisible && tunnelManNearby(4)){
+        setVisible(true);
+        return;
+    }
+    
+}
+
+bool Barrel::tunnelManNearby(int radius) const{
+    int decrement = radius - 2;
+    int startX = getX() - decrement;
+    int startY = getY() - decrement;
+
+    for(int i = 0; i < actorSize + (decrement*2); i++){
+        for(int j = 0; j < actorSize + 2; j++){
+            if(getWorld()->isTunnelManAt(startX+j, startY+i)){
+                return true;
+            }
+        }
+    }
+    return false;
+    
+}

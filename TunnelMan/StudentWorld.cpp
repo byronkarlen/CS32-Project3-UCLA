@@ -31,14 +31,10 @@ int StudentWorld::init()
     
     Boulder* b = new Boulder(this, 20, 40);
     addActor(b);
-    
-    for(int i = 0; i < 4; i++){
-        for(int j = 0; j < 4; j++){
-            assert(findActor(20+j, 40+i, 'B') == b);
-        }
-    }
-    assert(findActor(19, 39, 'B') == nullptr);
-    assert(findActor(24, 44, 'B') == nullptr);
+
+    Barrel* o = new Barrel(this, 50, 50);
+    addActor(o);
+
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
     
@@ -157,6 +153,13 @@ bool StudentWorld::isTunnelManAt(int x, int y) const{
         }
     }
     return false;
+}
+
+int StudentWorld::getPlayerX() const{
+    return m_player->getX();
+}
+int StudentWorld::getPlayerY() const{
+    return m_player->getY();
 }
 
 //PRIVATE STUDENTWORLD FUNCTIONS
