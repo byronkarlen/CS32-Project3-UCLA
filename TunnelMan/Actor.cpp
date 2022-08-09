@@ -195,6 +195,8 @@ bool TunnelMan::boulderAt(int x, int y) const{
 //Boulder class method implementations:
 Boulder::Boulder(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BOULDER, startX, startY, down, 1, 1.0){
     setVisible(true); //Boulders start out visible
+    
+    //When Boulders are constructed they replace/destroy the earth behind them
     for(int i = 0; i < actorSize; i++){
         for(int j = 0; j < actorSize; j++){
             getWorld()->removeEarth(startX + j, startY + i);
