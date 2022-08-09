@@ -23,7 +23,6 @@ public:
     virtual ~Actor(){}
     
     virtual void doSomething() = 0;
-
 private:
     StudentWorld* m_world;
     bool m_isAlive;
@@ -80,7 +79,9 @@ private:
     void smushCharacters(); 
     bool boulderCanFall() const;
 };
-//
+
+
+
 //class Goodie : public Actor{
 //public:
 //    Goodie(StudentWorld* myWorld);
@@ -88,14 +89,19 @@ private:
 //    
 //};
 
-//class Squirt : public Goodie{
-//public:
-//    Squirt(StudentWorld* myWorld, TunnelMan* owner);
-//    virtual char getID() const;
-//    virtual void doSomething();
-//private:
-//    int travelDistance;
-//};
+class Squirt : public Actor{
+public:
+    Squirt(StudentWorld* myWorld, TunnelMan* owner);
+    virtual char getGameID() const;
+    virtual void doSomething();
+private:
+    int m_travelDistance;
+    //Returns true if it successfully annoyed a nearby protestor
+    bool annoyNearbyProtestors();
+    bool canMove(Direction d) const;
+    bool boulderAt(int x, int y) const;
+};
+
 
 
 #endif // ACTOR_H_

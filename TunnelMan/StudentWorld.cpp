@@ -50,16 +50,17 @@ int StudentWorld::move(){
     if(m_player->getLiveStatus())
         m_player->doSomething();
     
-//    list<Actor*>::iterator it;
-//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-//        if((*it)->getLiveStatus())
-//            (*it)->doSomething();
-//    }
-//
-//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-//        if(!(*it)->getLiveStatus())
-//            removeActor(*it);
-//    }
+    list<Actor*>::iterator it;
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if((*it)->getLiveStatus())
+            (*it)->doSomething();
+    }
+
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if(!(*it)->getLiveStatus()){
+            removeActor(*it);
+        }
+    }
     
     if(m_player->getLiveStatus())
         return GWSTATUS_CONTINUE_GAME;
@@ -108,9 +109,15 @@ void StudentWorld::addActor(Actor* a){
 
 void StudentWorld::removeActor(Actor* a){
     list<Actor*>::iterator it;
-    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if(*it == a)
-            m_gameObjects.erase(it);
+    it = m_gameObjects.begin();
+    while(it != m_gameObjects.end()){
+        if(*it == a){
+            delete *it;
+            it = m_gameObjects.erase(it);
+        }
+        else{
+            it++;
+        }
     }
 }
 
@@ -134,12 +141,22 @@ Actor* StudentWorld::findActor(int x, int y, char c) const{
     return nullptr;
 }
 
-
-int StudentWorld::getPlayerX() const{
-    return m_player->getX();
+Actor* StudentWorld::getTunnelMan() const{
+    return m_player;
 }
-int StudentWorld::getPlayerY() const{
-    return m_player->getY();
+
+bool StudentWorld::isTunnelManAt(int x, int y) const{
+    
+    int xLoc = m_player->getX();
+    int yLoc = m_player->getY();
+    
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(x-j == xLoc && y-i == yLoc)
+                return true;
+        }
+    }
+    return false;
 }
 
 //PRIVATE STUDENTWORLD FUNCTIONS

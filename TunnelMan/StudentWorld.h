@@ -9,7 +9,8 @@
 
 //Constants:
 const int actorSize = 4;
-const int ticksBeforeFalling = 30; 
+const int ticksBeforeFalling = 30;
+const int squirtInitialTravelDistance = 4;
 
 class Actor;
 class Earth;
@@ -46,6 +47,11 @@ public:
     //returns a pointer to an actor (with a certain characterID) found at the given location. If none is found, returns nullptr
     Actor* findActor(int x, int y, char c) const;
     
+    //Returns a pointer to the TunnelMan
+    Actor* getTunnelMan() const;
+    
+    //Returns whether any part of the TunnelMan is present at a given location
+    bool isTunnelManAt(int x, int y) const;
     
     //returns the x-coordinate of the TunnelMan
     int getPlayerX() const;

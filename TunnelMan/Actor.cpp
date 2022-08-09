@@ -90,6 +90,12 @@ void TunnelMan::doSomething(){
             //If they have suffient water in their squirt gun
             //the TunnelMan will fire a Squirt into the oil field
             //The TunnelMan will then reduce their water count by 1.
+            if(m_numWater > 0){
+                Squirt* s = new Squirt(getWorld(), this);
+                getWorld()->addActor(s);
+                m_numWater--;
+            }
+
         }
         else if(ch == 'Z' || ch == 'z'){
             //If they have sufficient sonar charges
@@ -223,7 +229,7 @@ void Boulder::doSomething(){
     }
 
     if(state == 1){ //Waiting state
-        if(ticksElapsed > ticksBeforeFalling){
+        if(ticksElapsed >= ticksBeforeFalling){ //check if this should be > or >=
             state = 2; //Falling state
             getWorld()->playSound(SOUND_FALLING_ROCK);
             ticksElapsed = -1;
@@ -235,7 +241,7 @@ void Boulder::doSomething(){
     if(state == 2){//Falling state
         if(boulderCanFall()){
             getWorld()->playSound(SOUND_FALLING_ROCK);
-            //smushCharacters();
+            smushCharacters();
             moveTo(getX(), getY() - 1);
         }
         else{
@@ -249,12 +255,20 @@ void Boulder::doSomething(){
 void Boulder:: smushCharacters(){
     int x = getX() - 1;
     int y = getY() - 1;
-    for(int i = 0; i < 6; i++){
+    for(int i = 0; i < 5; i++){
         for(int j = 0; j < 6; j++){
-            Actor* doomed = getWorld()->findActor(x, y, 'T');
-            if(doomed != nullptr && doomed->getLiveStatus()){
-                doomed->annoy(100);
+            if(getWorld()->isTunnelManAt(x+j, y+i) && getWorld()->getTunnelMan()->getLiveStatus()){
+                getWorld()->getTunnelMan()->annoy(100);
             }
+            //TODO: Smush nearby protestors:
+            //Actor* doomed = getWorld()->findActor(x, y, 'P');
+//            if(doomed != nullptr && doomed->getLiveStatus()){
+//                doomed->annoy(100);
+//            }
+            //Actor* doomed = getWorld()->findActor(x, y, 'p');
+//            if(doomed != nullptr && doomed->getLiveStatus()){
+//                doomed->annoy(100);
+//            }
         }
     }
 }
@@ -274,14 +288,133 @@ bool Boulder::boulderCanFall() const{
 }
 
 
-//Squirt class method implementations
-//Squirt::Squirt(StudentWorld* myWorld, TunnelMan* owner) : Actor(myWorld, TID_WATER_SPURT, owner->getX(), owner->getY(), owner->getDirection(), 1, 1.0){
-//    travelDistance = 4;
-//}
+//Squirt class function implementations
+Squirt::Squirt(StudentWorld* myWorld, TunnelMan* owner) : Actor(myWorld, TID_WATER_SPURT, owner->getX(), owner->getY(), owner->getDirection(), 1, 1.0){
+    m_travelDistance = squirtInitialTravelDistance;
+    setVisible(true); //All squirt objects start off as visible
+}
 
-//void Squirt::doSomething(){
-//
-//}
+void Squirt::doSomething(){
+    if(annoyNearbyProtestors()){
+        setLiveStatus(false);
+        return;
+    }
+    if(m_travelDistance == 0){
+        setLiveStatus(false);
+        return;
+    }
+    
+    if(!canMove(getDirection())){
+        setLiveStatus(false);
+        return;
+    }
+    
+    Direction d = getDirection();
+    int x = getX();
+    int y = getY();
+    if(d == up)
+        moveTo(x, y+1);
+    if(d == down)
+        moveTo(x, y-1);
+    if(d == right)
+        moveTo(x+1, y);
+    if(d == left)
+        moveTo(x-1, y);
+}
+bool Squirt::canMove(Direction d) const{
+    int x = getX();
+    int y = getY();
+    
+    if(d == right){
+        if(x >= VIEW_WIDTH - actorSize)
+            return false;
+        if(boulderAt(x + 1, getY()))
+            return false;
+        for(int i = 0; i < actorSize; i++){
+            if(getWorld()->isEarthAt(x+1, y+i))
+                return false;
+        }
+        return true;
+    }
+    if(d == left){
+        if(x <= 0)
+            return false;
+        if(boulderAt(x - 1, y))
+            return false;
+        for(int i = 0; i < actorSize; i++){
+            if(getWorld()->isEarthAt(x-1, y+i))
+                return false;
+        }
+        return true;
+    }
+    if(d == up){
+        if(y >= VIEW_HEIGHT - actorSize)
+            return false;
+        if(boulderAt(x, y + 1))
+            return false;
+        for(int i = 0; i < actorSize; i++){
+            if(getWorld()->isEarthAt(x+i, y+1))
+                return false;
+        }
+        return true;
+    }
+    if(d == down){
+        if(getY() <= 0)
+            return false;
+        if(boulderAt(getX(), getY() - 1))
+            return false;
+        for(int i = 0; i < actorSize; i++){
+            if(getWorld()->isEarthAt(x+i, y-1))
+                return false;
+        }
+        return true;
+    }
+    
+    return false; //This will never be hit
+}
+
+bool Squirt::boulderAt(int x, int y) const{
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(getWorld()->inField(x + j, y + i)){
+                if(getWorld()->findActor(x + j, y + i, 'B') != nullptr){
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+char Squirt::getGameID() const{
+    return 'S';
+}
+
+//TODO: Ensure this function works correctly
+bool Squirt::annoyNearbyProtestors(){
+    bool output = false;
+    
+    int x = getX() - 1;
+    int y = getY() - 1;
+    
+    Actor* prevProtestor = nullptr;
+    for(int i = 0; i < actorSize + 2; i++){
+        for(int j = 0; j < actorSize + 2; j++){
+            if(getWorld()->inField(x+j, y+i)){
+                Actor* protestor = getWorld()->findActor(x+j, y+i, 'P');
+                if(protestor != nullptr && protestor != prevProtestor){
+                    protestor->annoy(2);
+                    prevProtestor = protestor;
+                    output = true;
+                }
+            }
+        }
+    }
+    
+    return output;
+}
+
  
 
 
