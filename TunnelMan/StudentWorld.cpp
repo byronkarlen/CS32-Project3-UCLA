@@ -16,9 +16,9 @@ int StudentWorld::init()
 
     populateFieldWithBoulders();
 
-    populateFieldWithNuggets();
+//    populateFieldWithNuggets();
     
-    populateFieldWithBarrels();
+//    populateFieldWithBarrels();
 
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
@@ -40,10 +40,10 @@ int StudentWorld::move(){
                 decLives();
                 return GWSTATUS_PLAYER_DIED;
             }
-            if(playerCompletedLevel()){
-                playSound(SOUND_FINISHED_LEVEL);
-                return GWSTATUS_FINISHED_LEVEL;
-            }
+//            if(playerCompletedLevel()){
+//                playSound(SOUND_FINISHED_LEVEL);
+//                return GWSTATUS_FINISHED_LEVEL;
+//            }
         }
     }
 
@@ -77,21 +77,66 @@ void StudentWorld::cleanUp(){
     delete m_player;
 }
 
-void StudentWorld::removeEarth(int x, int y){
-    if(!inField(x, y))
-        return;
+bool StudentWorld::actorAt(int x, int y, char c) const{
     
-    if(m_earthTracker[y][x] == nullptr)
-        return;
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(findActor(x+j, y+i, c) != nullptr)
+                return true;
+        }
+    }
+    return false;
     
-    delete m_earthTracker[y][x];
-    m_earthTracker[y][x] = nullptr;
 }
 
-bool StudentWorld::isEarthAt(int x, int y) const{
-    if(!inField(x, y))
-        return false;
-    return m_earthTracker[y][x] != nullptr;
+
+void StudentWorld::removeEarth(int x, int y){
+    
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(inField(x+j, y+i) && m_earthTracker[y+i][x+j] != nullptr){
+                delete m_earthTracker[y+i][x+j];
+                m_earthTracker[y+i][x+j] = nullptr;
+            }
+        }
+    }
+}
+
+bool StudentWorld::earthAt(int x, int y) const{
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(inField(x+j, y+i) && m_earthTracker[y+i][x+j] != nullptr){
+                return true;
+            }
+        }
+    }
+    return false;   
+}
+
+void StudentWorld::illuminateOilField(int x, int y, int radius){
+    list<Actor*>::iterator it;
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) < radius)
+            (*it)->setVisible(true);
+    }
+}
+
+bool StudentWorld::actorWithinRadius(int x, int y, int radius, char GameID){
+    list<Actor*>::iterator it;
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if((*it)->getGameID() == GameID){
+            if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) <= radius)
+                return true;
+        }
+    }
+    return false;
+}
+               
+double StudentWorld::distanceApart(int x, int y, int x2, int y2){
+    int diffX = x2 - x;
+    int diffY = y2 - y;
+    int total = diffX * diffX + diffY * diffY;
+    return sqrt(total);
 }
 
 void StudentWorld::addActor(Actor* a){
@@ -200,53 +245,53 @@ void StudentWorld::populateFieldWithBoulders(){
         do{
             x = rand() % 54 + 1;
             y = rand() % 35 + 20;
-        }while(thereAreObjectsTooClose(x, y));
+        }while(thereAreObjectsTooClose(x, y) && !inTunnel(x, y));
         
         Boulder* b = new Boulder(this, x, y);
         addActor(b);
     }
 }
 
-void StudentWorld::populateFieldWithNuggets(){
-    int numNuggets;
-    int alt = 5 - getLevel() / 2;
-    if(alt > 2)
-        numNuggets = alt;
-    else
-        numNuggets = 2;
-    
-    for(int i = 0; i < numNuggets; i++){
-        int x, y;
-        do{
-            x = rand() % 60;
-            y = rand() % 56;
-        }while(thereAreObjectsTooClose(x, y));
-        
-        Gold* g = new Gold(this, x, y, false, -1);
-        addActor(g);
-    }
-}
+//void StudentWorld::populateFieldWithNuggets(){
+//    int numNuggets;
+//    int alt = 5 - getLevel() / 2;
+//    if(alt > 2)
+//        numNuggets = alt;
+//    else
+//        numNuggets = 2;
+//    
+//    for(int i = 0; i < numNuggets; i++){
+//        int x, y;
+//        do{
+//            x = rand() % 60;
+//            y = rand() % 56;
+//        }while(thereAreObjectsTooClose(x, y));
+//        
+//        Gold* g = new Gold(this, x, y, false, -1);
+//        addActor(g);
+//    }
+//}
 
-void StudentWorld::populateFieldWithBarrels(){
-    int numBarrels;
-    int alt = 2 + getLevel();
-    if(alt < 21)
-        numBarrels = alt;
-    else
-        numBarrels = 21;
-    
-    for(int i = 0; i < numBarrels; i++){
-        int x, y;
-        do{
-            x = rand() & 60;
-            y = rand() % 56;
-        }while(thereAreObjectsTooClose(x, y));
-
-        
-        Barrel* o = new Barrel(this, x, y);
-        addActor(o);
-    }
-}
+//void StudentWorld::populateFieldWithBarrels(){
+//    int numBarrels;
+//    int alt = 2 + getLevel();
+//    if(alt < 21)
+//        numBarrels = alt;
+//    else
+//        numBarrels = 21;
+//    
+//    for(int i = 0; i < numBarrels; i++){
+//        int x, y;
+//        do{
+//            x = rand() & 60;
+//            y = rand() % 56;
+//        }while(thereAreObjectsTooClose(x, y));
+//
+//        
+//        Barrel* o = new Barrel(this, x, y);
+//        addActor(o);
+//    }
+//}
 
 bool StudentWorld::thereAreObjectsTooClose(int x, int y){
     list<Actor*>::iterator it;
@@ -270,6 +315,13 @@ bool StudentWorld::playerCompletedLevel(){
             return false;
     }
     return true;
+}
+
+bool StudentWorld::inTunnel(int x, int y) const{
+    if((x >= 30 && x <= 33) && (y >= 4))
+        return true;
+    else
+        return false;
 }
 
 //void StudentWorld::updateDisplayText(){

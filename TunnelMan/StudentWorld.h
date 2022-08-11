@@ -33,18 +33,25 @@ public:
     
     //Additional Functions:
     
-    //removes earth object at the specified location. If there is no earth object at the given location, it does nothing
+    //removes earth objects within a 4x4 location specified by the bottom left corner. If there is no earth object at the given location, it does nothing
     void removeEarth(int x, int y);
-    //returns whether there is an earth object at the given location. If the location is not valid, it returns false anyway
-    bool isEarthAt(int x, int y) const;
     
+    //returns whether there are earth objects within a given location 4x4 location specfied by the bottom left corner. If the location is not valid, it returns false anyways
+    bool earthAt(int x, int y) const; 
+    
+    //returns whether there is an actor with the given character ID within the specified radius of x, y
+    bool actorWithinRadius(int x, int y, int radius, char ID);
     
     //adds an actor to the field (except for Earth) to the field
     void addActor(Actor* a);
     //removes an actor (except for Earth and TunnelMan) from a location at the field
     void removeActor(Actor* a);
+    
     //returns a pointer to an actor (with a certain characterID) found at the given location. If none is found, returns nullptr
     Actor* findActor(int x, int y, char c) const;
+    
+    //returns whether an actor (with a certain characterID) is present within a 4x4 location starting with (x,y) at the bottom left
+    bool actorAt(int x, int y, char c) const;
     
     //Returns a pointer to the TunnelMan
     TunnelMan* getTunnelMan() const;
@@ -57,7 +64,12 @@ public:
     //returns the y-coordinate of the TunnelMan
     int getPlayerY() const;
 
+    //returns whether a given coordinate is located within the game's playing field
     bool inField(int x, int y) const;
+    
+    void illuminateOilField(int x, int y, int radius);
+    
+
     
 private:
     Earth* m_earthTracker[VIEW_HEIGHT][VIEW_WIDTH];
@@ -66,13 +78,14 @@ private:
     
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
-    void populateFieldWithBarrels();
-    void populateFieldWithNuggets();
+//    void populateFieldWithBarrels();
+//    void populateFieldWithNuggets();
     
     bool thereAreObjectsTooClose(int x, int y);
     bool playerCompletedLevel(); 
-    //returns whether a given coordinate is located within the game's playing field
     
+    double distanceApart(int x, int y, int x2, int y2); 
+    bool inTunnel(int x, int y) const; 
 //    void updateDisplayText();
 //    std::string formatStats();
 
