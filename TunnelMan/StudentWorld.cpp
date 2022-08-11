@@ -2,6 +2,8 @@
 #include "Actor.h"
 #include <string>
 #include <cmath>
+#include <cstdlib>
+
 using namespace std;
 
 //PUBLIC STUDENTWORLD INTERFACE
@@ -10,30 +12,13 @@ StudentWorld::StudentWorld(std::string assetDir) : GameWorld(assetDir){}
 
 int StudentWorld::init()
 {
-    
-    //set earth tracker to have all nullptrs:
-    for(int i = 0; i < VIEW_HEIGHT; i++){
-        for(int j = 0; j < VIEW_WIDTH; j++){
-            m_earthTracker[i][j] = nullptr;
-        }
-    }
-    Earth* temp;
-    //fill rows 0 through 59 of the oil field with Earth Objects (with exception of vertical shafts)
-    for(int col = 0; col < VIEW_WIDTH; col++){
-        for(int row = 0; row < VIEW_HEIGHT-4; row++){
-            //If the current location falls outside of the central tunnel
-            if((col < 30 || col > 33) || row < 4) {
-                temp = new Earth(this, col, row); //Create a new earth at the given location
-                m_earthTracker[row][col] = temp; //Add the earth pointer to the earthTracker
-            }
-        }
-    }
-    
-    Boulder* b = new Boulder(this, 20, 40);
-    addActor(b);
+    populateFieldWithEarth();
 
-    Barrel* o = new Barrel(this, 50, 50);
-    addActor(o);
+    populateFieldWithBoulders();
+
+    populateFieldWithNuggets();
+    
+    populateFieldWithBarrels();
 
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
@@ -42,14 +27,24 @@ int StudentWorld::init()
 }
 
 int StudentWorld::move(){
+//    updateDisplayText();
     
     if(m_player->getLiveStatus())
         m_player->doSomething();
     
     list<Actor*>::iterator it;
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if((*it)->getLiveStatus())
+        if((*it)->getLiveStatus()){
             (*it)->doSomething();
+            if(!m_player->getLiveStatus()){
+                decLives();
+                return GWSTATUS_PLAYER_DIED;
+            }
+            if(playerCompletedLevel()){
+                playSound(SOUND_FINISHED_LEVEL);
+                return GWSTATUS_FINISHED_LEVEL;
+            }
+        }
     }
 
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
@@ -137,7 +132,7 @@ Actor* StudentWorld::findActor(int x, int y, char c) const{
     return nullptr;
 }
 
-Actor* StudentWorld::getTunnelMan() const{
+TunnelMan* StudentWorld::getTunnelMan() const{
     return m_player;
 }
 
@@ -162,8 +157,6 @@ int StudentWorld::getPlayerY() const{
     return m_player->getY();
 }
 
-//PRIVATE STUDENTWORLD FUNCTIONS
-
 bool StudentWorld::inField(int x, int y) const{
     if(x < 0 || x > VIEW_WIDTH)
         return false;
@@ -172,8 +165,132 @@ bool StudentWorld::inField(int x, int y) const{
     return true;
 }
 
+//Private StudentWorld Functions
+void StudentWorld::populateFieldWithEarth(){
+    //set earth tracker to have all nullptrs:
+    for(int i = 0; i < VIEW_HEIGHT; i++){
+        for(int j = 0; j < VIEW_WIDTH; j++){
+            m_earthTracker[i][j] = nullptr;
+        }
+    }
+    Earth* temp;
+    //fill rows 0 through 59 of the oil field with Earth Objects (with exception of vertical shafts)
+    for(int col = 0; col < VIEW_WIDTH; col++){
+        for(int row = 0; row < VIEW_HEIGHT-4; row++){
+            //If the current location falls outside of the central tunnel
+            if((col < 30 || col > 33) || row < 4) {
+                temp = new Earth(this, col, row); //Create a new earth at the given location
+                m_earthTracker[row][col] = temp; //Add the earth pointer to the earthTracker
+            }
+        }
+    }
+}
 
+void StudentWorld::populateFieldWithBoulders(){
+    int numBoulders;
+    int alt = getLevel() / 2 + 2;
+    if(alt < 9)
+        numBoulders = alt;
+    else
+        numBoulders = 0;
+    assert(numBoulders == 2);
+    
+    for(int i = 0; i < numBoulders; i++){
+        int x, y;
+        do{
+            x = rand() % 54 + 1;
+            y = rand() % 35 + 20;
+        }while(thereAreObjectsTooClose(x, y));
+        
+        Boulder* b = new Boulder(this, x, y);
+        addActor(b);
+    }
+}
 
+void StudentWorld::populateFieldWithNuggets(){
+    int numNuggets;
+    int alt = 5 - getLevel() / 2;
+    if(alt > 2)
+        numNuggets = alt;
+    else
+        numNuggets = 2;
+    
+    for(int i = 0; i < numNuggets; i++){
+        int x, y;
+        do{
+            x = rand() % 60;
+            y = rand() % 56;
+        }while(thereAreObjectsTooClose(x, y));
+        
+        Gold* g = new Gold(this, x, y, false, -1);
+        addActor(g);
+    }
+}
+
+void StudentWorld::populateFieldWithBarrels(){
+    int numBarrels;
+    int alt = 2 + getLevel();
+    if(alt < 21)
+        numBarrels = alt;
+    else
+        numBarrels = 21;
+    
+    for(int i = 0; i < numBarrels; i++){
+        int x, y;
+        do{
+            x = rand() & 60;
+            y = rand() % 56;
+        }while(thereAreObjectsTooClose(x, y));
+
+        
+        Barrel* o = new Barrel(this, x, y);
+        addActor(o);
+    }
+}
+
+bool StudentWorld::thereAreObjectsTooClose(int x, int y){
+    list<Actor*>::iterator it;
+    
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++)
+    {
+        int x2 = (*it)->getX();
+        int y2 = (*it)->getY();
+        
+        int total = (x2 - x) * (x2 - x) + (y2 - y) * (y2 - y);
+        if(sqrt(total) < 6)
+            return true;
+    }
+    return false;
+}
+
+bool StudentWorld::playerCompletedLevel(){
+    list<Actor*>::iterator it;
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if((*it)->getGameID() == 'O')
+            return false;
+    }
+    return true;
+}
+
+//void StudentWorld::updateDisplayText(){
+//    int level = getLevel();
+//    int lives = getLives();
+//    int health = getCurrentHealth();
+//    int squirts = getSquirtsLeftInSquirtGun();
+//    int gold = getPlayerGoldCount();
+//    int barrelsLeft = getNumberOfBarrelsRemainingToBePickedUp();
+//    int sonar = getPlayerSonarChargeCount();
+//    int score = getScore();
+//    // Next, create a string from your statistics, of the form: // Lvl: 52 Lives: 3 Hlth: 80% Wtr: 20 Gld: 3 Oil Left: 2 Sonar: 1 Scr: 321000
+//              string s = someFunctionYouUseToFormatThingsNicely(level, lives, health,
+//                                         squirts, gold, barrelsLeft, sonar, score);
+//    // Finally, update the display text at the top of the screen with your // newly created stats
+//    setGameStatText(s); // calls our provided GameWorld::setGameStatText
+//}
+
+//string StudentWorld::formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score){
+//
+//}
 
 
 GameWorld* createStudentWorld(string assetDir)
@@ -181,336 +298,3 @@ GameWorld* createStudentWorld(string assetDir)
     return new StudentWorld(assetDir);
 }
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//#include "StudentWorld.h"
-//#include "Actor.h"
-//#include <string>
-//#include <cmath>
-//using namespace std;
-//
-////PUBLIC STUDENTWORLD INTERFACE
-//
-//StudentWorld::StudentWorld(std::string assetDir) : GameWorld(assetDir){}
-//
-//int StudentWorld::init()
-//{
-//
-//    //Create a sample boulder
-//
-//    Boulder* tempB = new Boulder(this, 20, 40);
-//    addActor(tempB);
-//    tempB->setVisible(true);
-//
-//
-//    //set earth tracker to have all nullptrs:
-//    for(int i = 0; i < VIEW_HEIGHT-4; i++){
-//        for(int j = 0; j < VIEW_WIDTH; j++){
-//            m_earthTracker[i][j] = nullptr;
-//        }
-//    }
-//    Earth* temp;
-//    //fill rows 0 through 59 of the oil field with Earth Objects (with exception of vertical shafts)
-//    for(int col = 0; col < VIEW_WIDTH; col++){
-//        for(int row = 0; row < VIEW_HEIGHT-4; row++){
-//
-//            //If the current location falls outside of the central tunnel
-//            if(((col < 30 || col > 33) || row < 4) && !spotContains(col, row, 'B')) {
-//                temp = new Earth(this, col, row); //Create a new earth at the given location
-//                temp->setVisible(true); //Make the earth visible
-//                m_earthTracker[row][col] = temp; //Add the earth pointer to the earthTracker
-//                m_gameRepresentation[row][col].push_back('E'); //The character 'E' represents an earth at the given location in the field
-//            }
-//        }
-//    }
-//
-//
-//    //Create the tunnelman
-//    m_player = new TunnelMan(this); //Create a new TunnelMan
-//    m_player->setVisible(true); //Make the TunnelMan visible
-//    m_gameRepresentation[60][30].push_back('T'); //The character 'T' represents the TunnelMan at the given location in the field
-//
-//    assert(findActor(30, 60, 'T') == nullptr);
-//
-//    return GWSTATUS_CONTINUE_GAME; //must return this to continue the game
-//}
-//
-//int StudentWorld::move(){
-//
-//    if(m_player->getLiveStatus())
-//        m_player->doSomething();
-//
-//    list<Actor*>::iterator it;
-//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-//        if((*it)->getLiveStatus())
-//            (*it)->doSomething();
-//    }
-//
-//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-//        if(!(*it)->getLiveStatus())
-//            removeActor(*it);
-//    }
-//
-//    if(m_player->getLiveStatus())
-//        return GWSTATUS_CONTINUE_GAME;
-//    else{
-//        decLives();
-//        return GWSTATUS_PLAYER_DIED;
-//    }
-//
-//}
-//
-//void StudentWorld::cleanUp(){
-//    delete m_player;
-//    m_player = nullptr;
-//    for(int i = 0; i < VIEW_HEIGHT-4; i++){
-//        for(int j = 0; j < VIEW_WIDTH; j++){
-//            delete m_earthTracker[i][j];
-//            m_earthTracker[i][j] = nullptr;
-//        }
-//    }
-//}
-//
-//StudentWorld::~StudentWorld(){
-//    delete m_player;
-//    m_player = nullptr;
-//    for(int i = 0; i < VIEW_HEIGHT-4; i++){
-//        for(int j = 0; j < VIEW_WIDTH; j++){
-//            delete m_earthTracker[i][j];
-//            m_earthTracker[i][j] = nullptr;
-//        }
-//    }
-//}
-//
-//bool StudentWorld::removeEarth(int x, int y){
-//    if(x < 0 || x > 63)
-//        return false;
-//    if(y < 0 || y > 59)
-//        return false;
-//
-//    if(m_earthTracker[y][x] == nullptr)
-//        return false;
-//
-//    if(!spotContains(x, y, 'E'))
-//        return false;
-//
-//    delete m_earthTracker[y][x];
-//    m_earthTracker[y][x] = nullptr;
-//
-//    vector<char>::iterator it;
-//    for(it = m_gameRepresentation[y][x].begin(); it != m_gameRepresentation[y][x].end(); it++){
-//        if(*it == 'E'){
-//            m_gameRepresentation[y][x].erase(it);
-//            break;
-//        }
-//    }
-//
-//    return true;
-//}
-//
-//void StudentWorld::moveActor(Actor* a){
-//    int x = a->getX();
-//    int y = a->getY();
-//
-//    if(a->getDirection() == GraphObject::up){
-//        if(y < 63){
-//            a->moveTo(x, y+1);
-//            removeActorFromGameRepresentation(x, y, a->getGameID());
-//            addActorToGameRepresentation(x, y+1, a->getGameID());
-//        }
-//    }
-//    if(a->getDirection() == GraphObject::down){
-//        if(y > 0){
-//            a->moveTo(x, y-1);
-//            removeActorFromGameRepresentation(x, y, a->getGameID());
-//            addActorToGameRepresentation(x, y-1, a->getGameID());
-//        }
-//    }
-//    if(a->getDirection() == GraphObject::left){
-//        if(x > 0){
-//            a->moveTo(x-1, y);
-//            removeActorFromGameRepresentation(x, y, a->getGameID());
-//            addActorToGameRepresentation(x-1, y, a->getGameID());
-//        }
-//    }
-//    if(a->getDirection() == GraphObject::right){
-//        if(x < 63){
-//            a->moveTo(x+1, y);
-//            removeActorFromGameRepresentation(x, y, a->getGameID());
-//            addActorToGameRepresentation(x+1, y, a->getGameID());
-//        }
-//    }
-//
-//}
-//bool StudentWorld::spotContains4(int x, int y, char c) const{
-//    for(int i = 0; i < 4; i++){
-//        for(int j = 0; j < 4; j++){
-//            if(spotContains(x+j, y+i, c)){
-//                return true;
-//            }
-//        }
-//    }
-//    return false;
-//}
-//bool StudentWorld::spotContains(int x, int y, char c, double size) const{
-//    int nSquares = size*4;
-//    for(int j = 0; j < nSquares; j++){
-//        for(int k = 0; k < nSquares; k++){
-//            if(inField(x-k, y-j)){
-//                for(int i = 0; i < m_gameRepresentation[y-j][x-k].size(); i++){
-//                    if(m_gameRepresentation[y-j][x-k][i] == c)
-//                        return true;
-//                }
-//            }
-//        }
-//    }
-//
-//    return false;
-//}
-//
-//
-//
-//
-//void StudentWorld::removeActor(Actor* a){
-//    removeActorFromGameRepresentation(a->getX(), a->getY(), a->getGameID());
-//    removeActorFromGameObjects(a);
-//}
-//
-//void StudentWorld::addActor(Actor* a){
-//    addActorToGameRepresentation(a->getX(), a->getY(), a->getGameID());
-//    addActorToGameObjects(a);
-//}
-//
-//int StudentWorld::getPlayerX() const{
-//    return m_player->getX();
-//}
-//int StudentWorld::getPlayerY() const{
-//    return m_player->getY();
-//}
-//
-//Actor* StudentWorld::findActor(int x, int y, char c, double size) const{
-//    int nSquares = size*4;
-//    for(int i = 0; i < nSquares; i++){
-//        for(int j = 0; j < nSquares; j++){
-//            if(inField(x-j, y-i)){
-//                for(int k = 0; k < m_gameRepresentation[y-i][x-j].size(); k++){
-//                    if(m_gameRepresentation[y-i][x-j][k] == c){
-//                        list<Actor*>::const_iterator it;
-//                        for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-//                            if((*it)->getX() == x && (*it)->getY() == y && (*it)->getGameID() == c)
-//                                return *it;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    return nullptr;
-//}
-//
-////PRIVATE STUDENTWORLD FUNCTIONS
-//void StudentWorld::removeActorFromGameRepresentation(int x, int y, char c){
-//    vector<char>::iterator it;
-//    for(it = m_gameRepresentation[y][x].begin(); it != m_gameRepresentation[y][x].end(); it++){
-//        if(*it == c){
-//            m_gameRepresentation[y][x].erase(it);
-//            break;
-//        }
-//    }
-//}
-//
-//void StudentWorld::addActorToGameRepresentation(int x, int y, char c){
-//    m_gameRepresentation[y][x].push_back(c);
-//}
-//
-//void StudentWorld::removeActorFromGameObjects(Actor *a){
-//    for(list<Actor*>::iterator it2 = m_gameObjects.begin(); it2 != m_gameObjects.end(); it2++){
-//        if(*it2 == a){
-//            delete a;
-//            m_gameObjects.erase(it2);
-//            break;
-//        }
-//    }
-//}
-//
-//void StudentWorld::addActorToGameObjects(Actor* a){
-//    m_gameObjects.push_back(a);
-//}
-//
-//bool StudentWorld::inField(int x, int y) const{
-//    if(x < 0 || x > VIEW_WIDTH)
-//        return false;
-//    if(y < 0 || y > VIEW_WIDTH)
-//        return false;
-//    return true;
-//}
-//
-//
-////double StudentWorld::distanceBetween(Actor* a1, Actor* a2) const{
-////    double xDiff = a1->getX() - a2->getX();
-////    double yDiff = a1->getY() - a2->getY();
-////
-////    return sqrt((xDiff * xDiff) + (yDiff * yDiff));
-////}
-////
-//
-//
-//
-//
-//
-//GameWorld* createStudentWorld(string assetDir)
-//{
-//    return new StudentWorld(assetDir);
-//}
-//
-//
-//

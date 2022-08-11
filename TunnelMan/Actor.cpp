@@ -36,25 +36,18 @@ char Earth::getGameID() const{
 }
 
 
-//Character class method implementations
-Character::Character(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : Actor(myWorld, imageID, startX, startY, dir, size, depth){
-    m_hitPoints = 10;
-}
 
-void Character::annoy(int howMuch){
-    m_hitPoints -= howMuch;
-    if(m_hitPoints < 0)
-        setLiveStatus(false);
-}
 
 
 
 //TunnelMan class method implementations
 
-TunnelMan::TunnelMan(StudentWorld* myWorld) : Character(myWorld, TID_PLAYER, 30, 60){
+TunnelMan::TunnelMan(StudentWorld* myWorld) : Actor(myWorld, TID_PLAYER, 30, 60){
     m_numWater = 5;
     m_numSonarCharges = 1;
     m_numNuggets = 0;
+    m_numBarrelsFound = 0;
+    m_hitPoints = 10;
     setVisible(true); //TunnelMan starts out as visible
 }
 
@@ -146,6 +139,46 @@ void TunnelMan::doSomething(){
     }
 }
 
+void TunnelMan::incrementNumNuggets(){
+    m_numNuggets++;
+}
+
+int TunnelMan::getNumNuggets() const{
+    return m_numNuggets;
+}
+
+void TunnelMan::setNumSonarCharges(int num){
+    m_numSonarCharges = num;
+}
+int TunnelMan::getNumSonarCharges() const{
+    return m_numSonarCharges;
+}
+
+void TunnelMan::setNumWater(int num){
+    m_numWater = num;
+}
+int TunnelMan::getNumWater() const{
+    return m_numWater;
+}
+
+void TunnelMan::incrementBarrelsFound(){
+    m_numBarrelsFound++;
+}
+int TunnelMan::getNumBarrelsFound(){
+    return m_numBarrelsFound;
+}
+void TunnelMan::annoy(int howMuch){
+    m_hitPoints -= howMuch;
+    if(m_hitPoints < 0)
+        setLiveStatus(false);
+}
+void TunnelMan::setHitPoints(int points){
+    m_hitPoints = points;
+}
+
+int TunnelMan::getHitPoints() const{
+    return m_hitPoints;
+}
 
 bool TunnelMan::canMove(Direction d) const{
     if(d == right){
@@ -415,12 +448,29 @@ bool Squirt::annoyNearbyProtestors(){
     return output;
 }
 
- 
+ //Goodie Class Function Implementations:
+Goodie::Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : Actor(myWorld, imageID, startX, startY, dir, size, depth){
+    
+}
+
+bool Goodie::tunnelManNearby(int radius) const{
+    int decrement = radius - 2;
+    int startX = getX() - decrement;
+    int startY = getY() - decrement;
+
+    for(int i = 0; i < actorSize + (decrement*2); i++){
+        for(int j = 0; j < actorSize + 2; j++){
+            if(getWorld()->isTunnelManAt(startX+j, startY+i)){
+                return true;
+            }
+        }
+    }
+    return false;
+}
 //Barrel Class Function Implementations:
 
-Barrel::Barrel(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BARREL, startX, startY, right, 1.0, 2){
+Barrel::Barrel(StudentWorld* myWorld, int startX, int startY) : Goodie(myWorld, TID_BARREL, startX, startY, right, 1.0, 2){
     setVisible(false); //Barrels start out as invisible
-    m_isVisible = false;
 }
 
 char Barrel::getGameID() const{
@@ -439,25 +489,122 @@ void Barrel::doSomething(){
         //If necessary, inform StudentWorld object that it has been picked up
     }
     
-    if(!m_isVisible && tunnelManNearby(4)){
+    if(!isVisible() && tunnelManNearby(4)){
         setVisible(true);
         return;
     }
     
 }
 
-bool Barrel::tunnelManNearby(int radius) const{
-    int decrement = radius - 2;
-    int startX = getX() - decrement;
-    int startY = getY() - decrement;
+//Gold Class Function Implementations
 
-    for(int i = 0; i < actorSize + (decrement*2); i++){
-        for(int j = 0; j < actorSize + 2; j++){
-            if(getWorld()->isTunnelManAt(startX+j, startY+i)){
-                return true;
+Gold::Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp, int numTicks) : Goodie(myWorld, TID_GOLD, startX, startY, right, 1.0, 2){
+    
+    bool shouldBeVisible = true;
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(getWorld()->isEarthAt(startX+j, startY+i)){
+                setVisible(false);
+                shouldBeVisible = false;
             }
         }
     }
-    return false;
+    if(shouldBeVisible)
+        setVisible(true);
+    
+    m_tunnelManCanPickUp = tunnelManCanPickUp;
+    
+    m_ticksRemaining = numTicks;
+}
+
+char Gold::getGameID() const{
+    return 'G';
+}
+
+void Gold::doSomething(){
+    if(!getLiveStatus())
+        return;
+    
+    if(m_tunnelManCanPickUp && tunnelManNearby(3)){
+        setLiveStatus(false);
+        getWorld()->playSound(SOUND_GOT_GOODIE);
+        getWorld()->increaseScore(10);
+        getWorld()->getTunnelMan()->incrementNumNuggets();
+        return;
+    }
+    
+    if(!isVisible() && tunnelManNearby(4)){
+        setVisible(true);
+        return;
+    }
+    
+//    if(!m_tunnelManCanPickUp){
+//        Protestor* p = findNearbyProtestor();
+//        if(p != nullptr){
+//            setLiveStatus(false);
+//            getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
+//            //TODO: tell protestor object it found a gold nugget
+//            getWorld()->increaseScore(25);
+//        }
+//    }
+    
+    if(m_ticksRemaining != -1){
+        if(m_ticksRemaining == 0)
+            setLiveStatus(false);
+    }
+}
+
+//Protestor* Gold::findNearbyProtestor(){
+//
+//}
+
+
+//SonarKit Class Function Implementations
+SonarKit::SonarKit(StudentWorld* myWorld, int startX, int startY) : Goodie(myWorld, TID_SONAR, startX, startY, right, 1.0, 2){
+    
+    int level = getWorld()->getLevel();
+    int alternative = 300 - (10*level);
+    if(alternative > 100)
+        m_ticksRemaining = alternative;
+    else
+        m_ticksRemaining = 100;
+}
+
+void SonarKit::doSomething(){
+    return;
+}
+
+char SonarKit::getGameID() const{
+    return 'S';
+}
+
+//Waterpool class function implementations:
+
+//Protestor class function implementations:
+Protestor::Protestor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : Actor(myWorld, imageID, startX, startY, dir, size, depth){
+    m_hitPoints = 5;
+}
+
+void Protestor::setHitPoints(int num){
+    m_hitPoints = num;
+}
+
+int Protestor::getHitPoints() const{
+    return m_hitPoints;
+}
+
+//RegularProtestor class function implementations:
+
+RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_PROTESTER, 60, 60, left, 1.0, 0){
+    setVisible(true); //Regular protestors start out as visible
+    setHitPoints(5);
     
 }
+
+char RegularProtestor::getGameID() const{
+    return 'p';
+}
+void RegularProtestor::doSomething(){
+    
+}
+//HardcoreProtestor class function implementationss
