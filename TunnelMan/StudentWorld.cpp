@@ -18,7 +18,7 @@ int StudentWorld::init()
 
 //    populateFieldWithNuggets();
     
-//    populateFieldWithBarrels();
+    populateFieldWithBarrels();
 
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
@@ -40,10 +40,10 @@ int StudentWorld::move(){
                 decLives();
                 return GWSTATUS_PLAYER_DIED;
             }
-//            if(playerCompletedLevel()){
-//                playSound(SOUND_FINISHED_LEVEL);
-//                return GWSTATUS_FINISHED_LEVEL;
-//            }
+            if(playerCompletedLevel()){
+                playSound(SOUND_FINISHED_LEVEL);
+                return GWSTATUS_FINISHED_LEVEL;
+            }
         }
     }
 
@@ -265,7 +265,7 @@ void StudentWorld::populateFieldWithBoulders(){
         numBoulders = alt;
     else
         numBoulders = 0;
-    assert(numBoulders == 2);
+    
     
     for(int i = 0; i < numBoulders; i++){
         int x, y;
@@ -299,49 +299,41 @@ void StudentWorld::populateFieldWithBoulders(){
 //    }
 //}
 
-//void StudentWorld::populateFieldWithBarrels(){
-//    int numBarrels;
-//    int alt = 2 + getLevel();
-//    if(alt < 21)
-//        numBarrels = alt;
-//    else
-//        numBarrels = 21;
-//    
-//    for(int i = 0; i < numBarrels; i++){
-//        int x, y;
-//        do{
-//            x = rand() & 60;
-//            y = rand() % 56;
-//        }while(thereAreObjectsTooClose(x, y));
-//
-//        
-//        Barrel* o = new Barrel(this, x, y);
-//        addActor(o);
-//    }
-//}
+void StudentWorld::populateFieldWithBarrels(){
+    int numBarrels;
+    int alt = 2 + getLevel();
+    if(alt < 21)
+        numBarrels = alt;
+    else
+        numBarrels = 21;
+    
+    m_numBarrels = numBarrels;
+    
+    for(int i = 0; i < numBarrels; i++){
+        int x, y;
+        do{
+            x = rand() & 60;
+            y = rand() % 56;
+        }while(thereAreObjectsTooClose(x, y));
+
+        
+        Barrel* o = new Barrel(this, x, y);
+        addActor(o);
+    }
+}
 
 bool StudentWorld::thereAreObjectsTooClose(int x, int y){
     list<Actor*>::iterator it;
-    
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++)
     {
-        int x2 = (*it)->getX();
-        int y2 = (*it)->getY();
-        
-        int total = (x2 - x) * (x2 - x) + (y2 - y) * (y2 - y);
-        if(sqrt(total) < 6)
+        if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) <= 6)
             return true;
     }
     return false;
 }
 
 bool StudentWorld::playerCompletedLevel(){
-    list<Actor*>::iterator it;
-    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if((*it)->getGameID() == 'O')
-            return false;
-    }
-    return true;
+    return m_player->getNumBarrelsFound() == m_numBarrels;
 }
 
 bool StudentWorld::inTunnel(int x, int y) const{

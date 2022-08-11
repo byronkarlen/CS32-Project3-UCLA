@@ -83,10 +83,11 @@ private:
     Earth* m_earthTracker[VIEW_HEIGHT][VIEW_WIDTH];
     std::list<Actor*> m_gameObjects;
     TunnelMan* m_player;
+    int m_numBarrels;
     
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
-//    void populateFieldWithBarrels();
+    void populateFieldWithBarrels();
 //    void populateFieldWithNuggets();
     
     bool thereAreObjectsTooClose(int x, int y);

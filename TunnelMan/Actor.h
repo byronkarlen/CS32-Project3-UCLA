@@ -100,24 +100,29 @@ public:
 
 
 
-//class RegularProtestor : public Actor{
-//public:
-//    RegularProtestor(StudentWorld* myWorld);
-//    void doSomething();
-//    char getGameID() const;
-//    
-//    
-//private:
-//    int m_numSquares;
-//    bool m_leaveTheOilField;
-//    int m_hitPoints;
-//    int m_restingTicks;
-//    int m_ticksElapsed;
-//    int m_ticksSinceLastShout;
-//    
-//    bool canShoutAtTunnelMan();
-//    bool canMoveTowardTunnelMan();
-//};
+class RegularProtestor : public Actor{
+public:
+    RegularProtestor(StudentWorld* myWorld);
+    void doSomething();
+    char getGameID() const;
+    void annoy(int howMuch); 
+    
+private:
+    int m_numSquaresToMoveInCurrentDirection;
+    bool m_leaveTheOilField;
+    int m_hitPoints;
+    int m_ticksToWaitBetweenMoves;
+    int m_ticksSinceLastMove;
+    int m_ticksSinceLastShout;
+    
+    Direction generateRandomDirection();
+    void moveToExit(); 
+    bool canShoutAtTunnelMan();
+    void faceTunnelMan();
+    bool canMoveTowardTunnelMan();
+    int generateNumSquaresToMove();
+    bool isViableDirection();
+};
 
 
 //class Squirt : public Actor{

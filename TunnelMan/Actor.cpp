@@ -215,6 +215,7 @@ int TunnelMan::getHitPoints() const{
 //        getWorld()->addActor(s);
 //    }
 //}
+
 //Boulder class method implementations:
 Boulder::Boulder(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BOULDER, startX, startY, down, 1, 1.0){
     setVisible(true); //Boulders start out visible
@@ -309,6 +310,216 @@ void Barrel::doSomething(){
         //Tell the TunnelMan it has picked up a barrel
         getWorld()->getTunnelMan()->incrementBarrelsFound();
     }
+}
+
+//RegularProtestor class function implementations:
+
+RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Actor(myWorld, TID_PROTESTER, 60, 60, left, 1.0, 0){
+    
+    setVisible(true); //Regular protestors start out as visible
+    
+    m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
+    m_hitPoints = 5;
+    m_leaveTheOilField = false;
+    m_ticksToWaitBetweenMoves = fmax(0, 3 - getWorld()->getLevel() / 4);
+    m_ticksSinceLastMove = 100; //Regular protestors start out ready to move on the first tick
+    m_ticksSinceLastShout = 15; //Regular protestors start out ready to shout the first tick
+}
+
+char RegularProtestor::getGameID() const{
+    return 'p';
+}
+int RegularProtestor::generateNumSquaresToMove(){
+    return rand() % 53 + 8;
+}
+
+void RegularProtestor::annoy(int howMuch){
+    m_hitPoints -= howMuch;
+    if(m_hitPoints > 0){
+        getWorld()->playSound(SOUND_PROTESTER_ANNOYED);
+        //Stun the protestor for N resting ticks
+    }
+    else{
+        m_leaveTheOilField = true;
+        getWorld()->playSound(SOUND_PROTESTER_GIVE_UP);
+        m_ticksSinceLastMove = 0;
+    } //Make sure points are given in the other classes
+}
+
+void RegularProtestor::doSomething(){
+    if(!getLiveStatus())
+        return;
+    
+    if(m_ticksSinceLastMove < m_ticksToWaitBetweenMoves){
+        m_ticksSinceLastMove++;
+        return;
+    }
+    m_ticksSinceLastMove = 0;
+    //At this point the protestor passed these checks and is allowed to do something:
+    
+    
+    if(m_leaveTheOilField){
+        if(getX() < 60 || getY() < 60)
+            moveToExit();
+        else
+            setLiveStatus(false);
+        
+        m_ticksSinceLastShout++;
+        return;
+    }
+    
+    if(canShoutAtTunnelMan()){
+        getWorld()->getTunnelMan()->annoy(2);
+        getWorld()->playSound(SOUND_PROTESTER_YELL);
+        m_ticksSinceLastShout = 0;
+        return;
+    }
+    
+    if(canMoveTowardTunnelMan()){
+        faceTunnelMan();
+        m_numSquaresToMoveInCurrentDirection = 0;
+        move();
+        return;
+    }
+    
+    m_numSquaresToMoveInCurrentDirection--;
+    if(m_numSquaresToMoveInCurrentDirection <= 0){
+        do{
+        setDirection(generateRandomDirection());
+        }while(isViableDirection());
+        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
+    }
+    
+    //Implement step 7
+    
+    if(isViableDirection())
+        move();
+    else
+        m_numSquaresToMoveInCurrentDirection = 0;
+    
+    m_ticksSinceLastShout++;
+    return;
+}
+
+bool RegularProtestor::isViableDirection(){
+    int x = getX();
+    int y = getY();
+    if(getDirection() == up){
+        if(!getWorld()->inField(x, y + 1))
+            return false;
+        if(getWorld()->earthAt(x, y+1))
+            return false;
+        if(getWorld()->actorAt(x, y+1, 'B'))
+            return false;
+    }
+    else if(getDirection() == down){
+        if(!getWorld()->inField(x, y - 1))
+            return false;
+        if(getWorld()->earthAt(x, y-1))
+            return false;
+        if(getWorld()->actorAt(x, y-1, 'B'))
+            return false;
+    }
+    else if(getDirection() == right){
+        if(!getWorld()->inField(x+1, y))
+            return false;
+        if(getWorld()->earthAt(x+1, y))
+            return false;
+        if(getWorld()->actorAt(x+1, y, 'B'))
+            return false;
+    }
+    else if(getDirection() == right){
+        if(!getWorld()->inField(x-1, y))
+            return false;
+        if(getWorld()->earthAt(x-1, y))
+            return false;
+        if(getWorld()->actorAt(x-1, y, 'B'))
+            return false;
+    }
+    return true;
+}
+
+GraphObject::Direction RegularProtestor::generateRandomDirection(){
+    int i = rand() % 4;
+    if(i == 0)
+        return up;
+    if(i == 1)
+        return down;
+    if(i == 2)
+        return left;
+    else
+        return right;
+        
+}
+void RegularProtestor::faceTunnelMan(){
+    int x = getX();
+    int y = getY();
+    
+    int tX = getWorld()->getPlayerX();
+    int tY = getWorld()->getPlayerY();
+    
+    if(tX > x)
+        setDirection(right);
+    else if(tX < x)
+        setDirection(left);
+    else if(tY < y)
+        setDirection(down);
+    else if(tY > y)
+        setDirection(up);
+}
+
+void RegularProtestor::moveToExit(){
+    if(getX() < 60)
+        moveTo(getX()+1, getY());
+    else
+        moveTo(getX()+1, getY());
+}
+
+bool RegularProtestor::canShoutAtTunnelMan(){
+    
+    int x = getX();
+    int y = getY();
+
+    if(!getWorld()->tunnelManWithinRadius(x, y, 4))
+        return false;
+    if(m_ticksSinceLastShout < 15)
+        return false;
+    
+    int tX = getWorld()->getPlayerX();
+    int tY = getWorld()->getPlayerY();
+    
+    if((getDirection() == up || getDirection() == down) && tX == x)
+        return true;
+    if((getDirection() == left || getDirection() == right) && tY == y)
+        return true;
+    
+    return false;
+}
+
+bool RegularProtestor::canMoveTowardTunnelMan(){
+    int x = getX();
+    int y = getY();
+    int tX = getWorld()->getPlayerX();
+    int tY = getWorld()->getPlayerY();
+    
+    if(x != tX && y != tY)
+        return false;
+    
+    if(x == tX){
+        int diff = abs(tY - y);
+        for(int i = 0; i < diff; i++){
+            if(getWorld()->earthAt(x, y+i) || getWorld()->actorAt(x, y+i, 'B'))
+                return false;
+        }
+    }
+    if(y == tY){
+        int diff = abs(tX - x);
+        for(int i = 0; i < diff; i++){
+            if(getWorld()->earthAt(x+i, y) || getWorld()->actorAt(x, y+i, 'B'))
+                return false;
+        }
+    }
+    return true;
 }
 
 
@@ -557,103 +768,5 @@ void Barrel::doSomething(){
 //    return m_hitPoints;
 //}
 
-//RegularProtestor class function implementations:
 
-//RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Actor(myWorld, TID_PROTESTER, 60, 60, left, 1.0, 0){
-//    
-//    setVisible(true); //Regular protestors start out as visible
-//    m_numSquares = rand() % 53 + 8;
-//    m_leaveTheOilField = false;
-//    m_restingTicks = fmax(0, 3 - getWorld()->getLevel() / 4);
-//    m_ticksElapsed = 0;
-//    m_ticksSinceLastShout = 15;
-//}
-//
-//char RegularProtestor::getGameID() const{
-//    return 'p';
-//}
-//
-////THIS SHOULD NOT HAPPEN EVERY TICK
-//void RegularProtestor::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//    //Make sure the following only happens when it is allowed:
-//    if(m_ticksElapsed < m_restingTicks){
-//        m_ticksElapsed++;
-//        m_ticksSinceLastShout++;
-//        return;
-//    }
-//    m_ticksElapsed = 0;
-//    
-//    if(m_leaveTheOilField){
-//        if(getX() < 60)
-//            moveTo(getX() + 1, getY());
-//        else if(getY() < 60)
-//            moveTo(getX(), getY() + 1);
-//        else
-//            setLiveStatus(false);
-//        m_ticksSinceLastShout++;
-//        return;
-//    }
-//    
-//    if(canShoutAtTunnelMan() && m_ticksSinceLastShout >= 15){
-//        getWorld()->getTunnelMan()->annoy(2);
-//        getWorld()->playSound(SOUND_PROTESTER_YELL);
-//        m_ticksSinceLastShout = 0;
-//        return;
-//    }
-//    if(canMoveTowardTunnelMan()){
-//        faceTunnelMan();
-//        m_numSquares = 0;
-//        moveTowardTunnelMan();
-//    }
-//}
-//
-//bool RegularProtestor::canMoveTowardTunnelMan(){
-//    int x = getX();
-//    int y = getY();
-//    int tX = getWorld()->getPlayerX();
-//    int tY = getWorld()->getPlayerY();
-//    if(x == tX){
-//        int diff = tY - y;
-//        for(int i = 0; i < diff; i++){
-//            if(getWorld()->isEarthAt4(x, y+i))
-//                return false;
-//        }
-//    }
-//    if(y == tY){
-//        int diff = tX - x;
-//        for(int i = 0; i < diff; i++){
-//            if(getWorld()->isEarthAt4(x+i, y))
-//                return false;
-//        }
-//    }
-//    return true;
-//}
-//
-//bool RegularProtestor::canShoutAtTunnelMan(){
-//    int x = getX();
-//    int y = getY();
-//    
-//    int tX = getWorld()->getPlayerX();
-//    int tY = getWorld()->getPlayerY();
-//    
-//    if(getDirection() == up)
-//        if(tX == x && tY - y < 4)
-//            return true;
-//    if(getDirection() == down)
-//        if(tX == x && y - ty < 4)
-//            return true;
-//    if(getDirection() == left)
-//        if(tY == y && x - Tx < 4)
-//            return true;
-//    if(getDirection() == right)
-//        if(tY == y && Tx - x < 4)
-//            return true;
-//    
-//    return false;
-//}
-//void RegularProtestor::moveToExit(){
-//    if()
-//}
 //HardcoreProtestor class function implementationss
