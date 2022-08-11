@@ -822,6 +822,40 @@
 			<key>uniqueIdentifier</key>
 			<string>7D5C01FA-7C20-4DC5-B1D8-835BF2EA3BC0</string>
 		</dict>
+		<key>7F440373-E4AA-4E67-89C7-7776AD697F35</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>7F440373-E4AA-4E67-89C7-7776AD697F35.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>TunnelMan project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>TunnelMan</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build TunnelMan</string>
+			<key>timeStartedRecording</key>
+			<real>681949981.96161699</real>
+			<key>timeStoppedRecording</key>
+			<real>681949982.81602204</real>
+			<key>title</key>
+			<string>Build TunnelMan</string>
+			<key>uniqueIdentifier</key>
+			<string>7F440373-E4AA-4E67-89C7-7776AD697F35</string>
+		</dict>
 		<key>81A9ADBA-3DEE-498E-B168-EF765D775625</key>
 		<dict>
 			<key>className</key>
@@ -1467,6 +1501,40 @@
 			<string>Build TunnelMan</string>
 			<key>uniqueIdentifier</key>
 			<string>C6C6EEC4-BF97-4F7E-BA02-396BA58E7B79</string>
+		</dict>
+		<key>CB16C007-4ADA-4611-A654-B056384913FF</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>CB16C007-4ADA-4611-A654-B056384913FF.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>TunnelMan project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>TunnelMan</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build TunnelMan</string>
+			<key>timeStartedRecording</key>
+			<real>681950505.24464405</real>
+			<key>timeStoppedRecording</key>
+			<real>681950506.12427604</real>
+			<key>title</key>
+			<string>Build TunnelMan</string>
+			<key>uniqueIdentifier</key>
+			<string>CB16C007-4ADA-4611-A654-B056384913FF</string>
 		</dict>
 		<key>D24270A9-CA81-4F16-89B8-79CE71A5B429</key>
 		<dict>

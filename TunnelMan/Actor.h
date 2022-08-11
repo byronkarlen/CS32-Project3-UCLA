@@ -49,9 +49,10 @@ public:
     
     virtual void doSomething();
     virtual char getGameID() const;
-    
     virtual void annoy(int howMuch);
     
+    
+    //Getters and Setters
     void incrementNumNuggets();
     int getNumNuggets() const;
     
@@ -90,14 +91,15 @@ private:
     bool boulderCanFall() const;
 };
 
-//class Barrel : public Actor{
-//public:
-//    Barrel(StudentWorld* myWorld, int startX, int startY);
-//    void doSomething();
-//    char getGameID() const;
-//private:
-//};
-//
+class Barrel : public Actor{
+public:
+    Barrel(StudentWorld* myWorld, int startX, int startY);
+    void doSomething();
+    char getGameID() const;
+};
+
+
+
 //class RegularProtestor : public Actor{
 //public:
 //    RegularProtestor(StudentWorld* myWorld);

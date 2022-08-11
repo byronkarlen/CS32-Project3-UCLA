@@ -265,37 +265,50 @@ void Boulder::doSomething(){
 }
 
 void Boulder:: smushCharacters(){
-    int x = getX() - 1;
-    int y = getY() - 1;
-    for(int i = 0; i < 5; i++){
-        for(int j = 0; j < 6; j++){
-            if(getWorld()->isTunnelManAt(x+j, y+i) && getWorld()->getTunnelMan()->getLiveStatus()){
-                getWorld()->getTunnelMan()->annoy(100);
-            }
-            //TODO: Smush nearby protestors:
-            //Actor* doomed = getWorld()->findActor(x, y, 'P');
-//            if(doomed != nullptr && doomed->getLiveStatus()){
-//                doomed->annoy(100);
-//            }
-            //Actor* doomed = getWorld()->findActor(x, y, 'p');
-//            if(doomed != nullptr && doomed->getLiveStatus()){
-//                doomed->annoy(100);
-//            }
-        }
+    getWorld()->annoyProtestorsWithinRadius(getX(), getY(), 3, 100);
+    if(getWorld()->tunnelManWithinRadius(getX(), getY(), 3)){
+        getWorld()->getTunnelMan()->annoy(100);
     }
 }
 bool Boulder::boulderCanFall() const{
     int x = getX();
     int y = getY();
+    
     if(y == 0)
         return false; //Hits the bottom of the screen so boulder cannot fall any longer
-    
-    
-    if(getWorld()->earthAt(x, y - 1) || getWorld()->findActor(x, y - 1, 'B')){
-            return false;
-    }
-
+    if(getWorld()->earthAt(x, y - 1) || getWorld()->findActor(x, y - 1, 'B'))
+            return false; //Hits eath or another bolder so cannot fall any longer
     return true;
+}
+
+//Barrel Class Function Implementations:
+
+Barrel::Barrel(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_BARREL, startX, startY, right, 1.0, 2){
+    
+    setVisible(false); //Barrels start out as invisible
+}
+
+char Barrel::getGameID() const{
+    return 'O'; //Barrels have a character/game ID of 'O' (Oil)
+}
+
+void Barrel::doSomething(){
+    if(!getLiveStatus())
+        return;
+    
+    if(!isVisible() && getWorld()->tunnelManWithinRadius(getX(), getY(), 4)){
+        setVisible(true);
+        return;
+    }
+    
+    if(getWorld()->tunnelManWithinRadius(getX(), getY(), 3)){
+        setLiveStatus(false);
+        getWorld()->playSound(SOUND_FOUND_OIL);
+        getWorld()->increaseScore(1000);
+        
+        //Tell the TunnelMan it has picked up a barrel
+        getWorld()->getTunnelMan()->incrementBarrelsFound();
+    }
 }
 
 
@@ -445,34 +458,7 @@ bool Boulder::boulderCanFall() const{
 //    }
 //    return false;
 //}
-//Barrel Class Function Implementations:
 
-//Barrel::Barrel(StudentWorld* myWorld, int startX, int startY) : Goodie(myWorld, TID_BARREL, startX, startY, right, 1.0, 2){
-//    setVisible(false); //Barrels start out as invisible
-//}
-//
-//char Barrel::getGameID() const{
-//    return 'O'; //Barrels have a character/game ID of 'O' (Oil)
-//}
-//
-//void Barrel::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//    
-//    if(tunnelManNearby(3)){
-//        setLiveStatus(false);
-//        getWorld()->playSound(SOUND_FOUND_OIL);
-//        getWorld()->increaseScore(1000);
-//        
-//        //If necessary, inform StudentWorld object that it has been picked up
-//    }
-//    
-//    if(!isVisible() && tunnelManNearby(4)){
-//        setVisible(true);
-//        return;
-//    }
-//    
-//}
 
 //Gold Class Function Implementations
 

@@ -39,8 +39,16 @@ public:
     //returns whether there are earth objects within a given location 4x4 location specfied by the bottom left corner. If the location is not valid, it returns false anyways
     bool earthAt(int x, int y) const; 
     
-    //returns whether there is an actor with the given character ID within the specified radius of x, y
+    //returns whether there is an active actor with the given character ID within the specified radius
     bool actorWithinRadius(int x, int y, int radius, char ID);
+    
+    //annoys all active protestors within the radius an amount 'howMuch'
+    void annoyProtestorsWithinRadius(int x, int y, int radius, int howMuch);
+    
+    //returns whether the tunnelman is within the given radius
+    bool tunnelManWithinRadius(int x, int y, int radius);
+    
+//    Actor* findActorWithinRadius(int x, int y, int radius, char ID);
     
     //adds an actor to the field (except for Earth) to the field
     void addActor(Actor* a);

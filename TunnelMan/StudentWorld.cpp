@@ -124,13 +124,40 @@ void StudentWorld::illuminateOilField(int x, int y, int radius){
 bool StudentWorld::actorWithinRadius(int x, int y, int radius, char GameID){
     list<Actor*>::iterator it;
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
-        if((*it)->getGameID() == GameID){
+        if((*it)->getGameID() == GameID && (*it)->getLiveStatus()){
             if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) <= radius)
                 return true;
         }
     }
     return false;
 }
+bool StudentWorld::tunnelManWithinRadius(int x, int y, int radius  ){
+    if(distanceApart(x, y, getPlayerX(), getPlayerY()) <= radius)
+        return true;
+    else
+        return false;
+}
+
+void StudentWorld::annoyProtestorsWithinRadius(int x, int y, int radius, int howMuch){
+    list<Actor*>::iterator it;
+    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+        if((*it)->getLiveStatus()){
+            if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) <= radius)
+                (*it)->annoy(howMuch);
+        }
+    }
+}
+
+//Actor* StudentWorld::findActorWithinRadius(int x, int y, int radius, char GameID){
+//    list<Actor*>::iterator it;
+//    for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
+//        if((*it)->getGameID() == GameID && (*it)->getLiveStatus()){
+//            if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) <= radius)
+//                return (*it);
+//        }
+//    }
+//    return nullptr;
+//}
                
 double StudentWorld::distanceApart(int x, int y, int x2, int y2){
     int diffX = x2 - x;
