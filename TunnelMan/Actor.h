@@ -111,6 +111,7 @@ private:
     int m_numSquaresToMoveInCurrentDirection;
     bool m_leaveTheOilField;
     int m_hitPoints;
+    
     int m_ticksToWaitBetweenMoves;
     int m_ticksSinceLastMove;
     int m_ticksSinceLastShout;

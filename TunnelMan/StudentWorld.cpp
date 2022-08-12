@@ -12,6 +12,7 @@ StudentWorld::StudentWorld(std::string assetDir) : GameWorld(assetDir){}
 
 int StudentWorld::init()
 {
+    //Populate field with objects that start out:
     populateFieldWithEarth();
 
     populateFieldWithBoulders();
@@ -20,6 +21,13 @@ int StudentWorld::init()
     
     populateFieldWithBarrels();
 
+    //Set appropriate tick counts
+    m_numProtestors = 0;
+    m_ticksSinceLastProtestorAdded = 1000;
+    m_minTicksBetweenProtestors = fmax(25, 200 - getLevel());
+    m_targetNumOfProtestors = fmin(15, 2 + getLevel() * 1.5);
+    
+    
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
     
@@ -27,7 +35,7 @@ int StudentWorld::init()
 }
 
 int StudentWorld::move(){
-//    updateDisplayText();
+    updateDisplayText();
     
     if(m_player->getLiveStatus())
         m_player->doSomething();
@@ -52,6 +60,17 @@ int StudentWorld::move(){
             removeActor(*it);
         }
     }
+    
+    if(m_ticksSinceLastProtestorAdded > m_minTicksBetweenProtestors && m_numProtestors < m_targetNumOfProtestors){
+        addActor(new RegularProtestor(this));
+        m_ticksSinceLastProtestorAdded = -1;
+        m_numProtestors++;
+    }
+    
+    
+    
+    //UPDATE TICK COUNTS
+    m_ticksSinceLastProtestorAdded++;
     
     if(m_player->getLiveStatus())
         return GWSTATUS_CONTINUE_GAME;
@@ -230,9 +249,17 @@ int StudentWorld::getPlayerY() const{
 }
 
 bool StudentWorld::inField(int x, int y) const{
-    if(x < 0 || x > VIEW_WIDTH)
+    if(x < 0 || x >= VIEW_WIDTH)
         return false;
-    if(y < 0 || y > VIEW_WIDTH)
+    if(y < 0 || y >= VIEW_HEIGHT)
+        return false;
+    return true;
+}
+
+bool StudentWorld::actorInField(int x, int y)const{
+    if(x < 0 || (x+actorSize) > VIEW_WIDTH)
+        return false;
+    if (y < 0 || (y+actorSize) > VIEW_HEIGHT)
         return false;
     return true;
 }
@@ -256,6 +283,7 @@ void StudentWorld::populateFieldWithEarth(){
             }
         }
     }
+    assert(!earthAt(64,63));
 }
 
 void StudentWorld::populateFieldWithBoulders(){
@@ -272,7 +300,7 @@ void StudentWorld::populateFieldWithBoulders(){
         do{
             x = rand() % 54 + 1;
             y = rand() % 35 + 20;
-        }while(thereAreObjectsTooClose(x, y) && !inTunnel(x, y));
+        }while(thereAreObjectsTooClose(x, y) || nearTunnel(x, y));
         
         Boulder* b = new Boulder(this, x, y);
         addActor(b);
@@ -336,32 +364,31 @@ bool StudentWorld::playerCompletedLevel(){
     return m_player->getNumBarrelsFound() == m_numBarrels;
 }
 
-bool StudentWorld::inTunnel(int x, int y) const{
-    if((x >= 30 && x <= 33) && (y >= 4))
+bool StudentWorld::nearTunnel(int x, int y) const{
+    if((x >= 26 && x <= 34) && (y >= 4))
         return true;
     else
         return false;
 }
 
-//void StudentWorld::updateDisplayText(){
-//    int level = getLevel();
-//    int lives = getLives();
-//    int health = getCurrentHealth();
-//    int squirts = getSquirtsLeftInSquirtGun();
-//    int gold = getPlayerGoldCount();
-//    int barrelsLeft = getNumberOfBarrelsRemainingToBePickedUp();
-//    int sonar = getPlayerSonarChargeCount();
-//    int score = getScore();
-//    // Next, create a string from your statistics, of the form: // Lvl: 52 Lives: 3 Hlth: 80% Wtr: 20 Gld: 3 Oil Left: 2 Sonar: 1 Scr: 321000
-//              string s = someFunctionYouUseToFormatThingsNicely(level, lives, health,
-//                                         squirts, gold, barrelsLeft, sonar, score);
-//    // Finally, update the display text at the top of the screen with your // newly created stats
-//    setGameStatText(s); // calls our provided GameWorld::setGameStatText
-//}
+void StudentWorld::updateDisplayText(){
+    int level = getLevel();
+    int lives = getLives();
+    int health = m_player->getHitPoints() * 10;
+    int squirts = m_player->getNumWater();
+    int gold = m_player->getNumNuggets();
+    int barrelsLeft = m_numBarrels - m_player->getNumBarrelsFound();
+    int sonar = m_player->getNumSonarCharges();
+    int score = getScore();
+    // Next, create a string from your statistics, of the form: // Lvl: 52 Lives: 3 Hlth: 80% Wtr: 20 Gld: 3 Oil Left: 2 Sonar: 1 Scr: 321000
+    string s = formatStats(level, lives, health, squirts, gold, barrelsLeft, sonar, score);
+    // Finally, update the display text at the top of the screen with your // newly created stats
+    setGameStatText(s); // calls our provided GameWorld::setGameStatText
+}
 
-//string StudentWorld::formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score){
-//
-//}
+string StudentWorld::formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score){
+    return "Lvl: " + to_string(level) + " Lives: " + to_string(lives) + " Hlth: " + to_string(health) + "% Wtr: " + to_string(squirts) + " Gld: " + to_string(gold) + " Oil Left: " + to_string(barrelsLeft) + " Sonar: " + to_string(sonar) + " Scr: " + to_string(score);
+}
 
 
 GameWorld* createStudentWorld(string assetDir)

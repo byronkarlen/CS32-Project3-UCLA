@@ -321,9 +321,10 @@ RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Actor(myWorld, TID_P
     m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
     m_hitPoints = 5;
     m_leaveTheOilField = false;
-    m_ticksToWaitBetweenMoves = fmax(0, 3 - getWorld()->getLevel() / 4);
-    m_ticksSinceLastMove = 100; //Regular protestors start out ready to move on the first tick
-    m_ticksSinceLastShout = 15; //Regular protestors start out ready to shout the first tick
+    //m_ticksToWaitBetweenMoves = fmax(0, 3 - (getWorld()->getLevel() / 4));
+    m_ticksToWaitBetweenMoves = 5;
+    m_ticksSinceLastMove = 0; //Regular protestors start out ready to move on the first tick
+    m_ticksSinceLastShout = 0; //Regular protestors start out ready to shout the first tick
 }
 
 char RegularProtestor::getGameID() const{
@@ -337,7 +338,7 @@ void RegularProtestor::annoy(int howMuch){
     m_hitPoints -= howMuch;
     if(m_hitPoints > 0){
         getWorld()->playSound(SOUND_PROTESTER_ANNOYED);
-        //Stun the protestor for N resting ticks
+        //TODO: Stun the protestor for N resting ticks
     }
     else{
         m_leaveTheOilField = true;
@@ -354,6 +355,7 @@ void RegularProtestor::doSomething(){
         m_ticksSinceLastMove++;
         return;
     }
+    
     m_ticksSinceLastMove = 0;
     //At this point the protestor passed these checks and is allowed to do something:
     
@@ -379,6 +381,8 @@ void RegularProtestor::doSomething(){
         faceTunnelMan();
         m_numSquaresToMoveInCurrentDirection = 0;
         move();
+        
+        m_ticksSinceLastShout++;
         return;
     }
     
@@ -386,7 +390,7 @@ void RegularProtestor::doSomething(){
     if(m_numSquaresToMoveInCurrentDirection <= 0){
         do{
         setDirection(generateRandomDirection());
-        }while(isViableDirection());
+        }while(!isViableDirection());
         m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
     }
     
@@ -405,7 +409,7 @@ bool RegularProtestor::isViableDirection(){
     int x = getX();
     int y = getY();
     if(getDirection() == up){
-        if(!getWorld()->inField(x, y + 1))
+        if(!getWorld()->actorInField(x, y + 1))
             return false;
         if(getWorld()->earthAt(x, y+1))
             return false;
@@ -413,7 +417,7 @@ bool RegularProtestor::isViableDirection(){
             return false;
     }
     else if(getDirection() == down){
-        if(!getWorld()->inField(x, y - 1))
+        if(!getWorld()->actorInField(x, y - 1))
             return false;
         if(getWorld()->earthAt(x, y-1))
             return false;
@@ -421,15 +425,15 @@ bool RegularProtestor::isViableDirection(){
             return false;
     }
     else if(getDirection() == right){
-        if(!getWorld()->inField(x+1, y))
+        if(!getWorld()->actorInField(x+1, y))
             return false;
         if(getWorld()->earthAt(x+1, y))
             return false;
         if(getWorld()->actorAt(x+1, y, 'B'))
             return false;
     }
-    else if(getDirection() == right){
-        if(!getWorld()->inField(x-1, y))
+    else if(getDirection() == left){
+        if(!getWorld()->actorInField(x-1, y))
             return false;
         if(getWorld()->earthAt(x-1, y))
             return false;
@@ -458,14 +462,20 @@ void RegularProtestor::faceTunnelMan(){
     int tX = getWorld()->getPlayerX();
     int tY = getWorld()->getPlayerY();
     
-    if(tX > x)
+    assert(tX == x || tY == y);
+    
+    if(tX > x){
         setDirection(right);
-    else if(tX < x)
+    }
+    if(tX < x){
         setDirection(left);
-    else if(tY < y)
+    }
+    if(tY < y){
         setDirection(down);
-    else if(tY > y)
+    }
+    if(tY > y){
         setDirection(up);
+    }
 }
 
 void RegularProtestor::moveToExit(){
@@ -507,15 +517,17 @@ bool RegularProtestor::canMoveTowardTunnelMan(){
     
     if(x == tX){
         int diff = abs(tY - y);
+        int min = fmin(tY, y);
         for(int i = 0; i < diff; i++){
-            if(getWorld()->earthAt(x, y+i) || getWorld()->actorAt(x, y+i, 'B'))
+            if(getWorld()->earthAt(x, min+i) || getWorld()->actorAt(x, min+i, 'B'))
                 return false;
         }
     }
     if(y == tY){
         int diff = abs(tX - x);
+        int min = fmin(x, tX);
         for(int i = 0; i < diff; i++){
-            if(getWorld()->earthAt(x+i, y) || getWorld()->actorAt(x, y+i, 'B'))
+            if(getWorld()->earthAt(min+i, y) || getWorld()->actorAt(min+i, y, 'B'))
                 return false;
         }
     }

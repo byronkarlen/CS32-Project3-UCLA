@@ -75,6 +75,8 @@ public:
     //returns whether a given coordinate is located within the game's playing field
     bool inField(int x, int y) const;
     
+    bool actorInField(int x, int y) const; 
+    
     void illuminateOilField(int x, int y, int radius);
     
 
@@ -83,7 +85,13 @@ private:
     Earth* m_earthTracker[VIEW_HEIGHT][VIEW_WIDTH];
     std::list<Actor*> m_gameObjects;
     TunnelMan* m_player;
+    
     int m_numBarrels;
+    
+    int m_minTicksBetweenProtestors;
+    int m_ticksSinceLastProtestorAdded;
+    int m_targetNumOfProtestors;
+    int m_numProtestors; 
     
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
@@ -94,9 +102,9 @@ private:
     bool playerCompletedLevel(); 
     
     double distanceApart(int x, int y, int x2, int y2); 
-    bool inTunnel(int x, int y) const; 
-//    void updateDisplayText();
-//    std::string formatStats();
+    bool nearTunnel(int x, int y) const; 
+    void updateDisplayText();
+    std::string formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score);
 
 };
 
