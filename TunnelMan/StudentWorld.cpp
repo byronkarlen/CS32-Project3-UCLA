@@ -23,7 +23,7 @@ int StudentWorld::init()
 
     //Set appropriate tick counts
     m_numProtestors = 0;
-    m_ticksSinceLastProtestorAdded = 1000;
+    m_ticksSinceLastProtestorAdded = 1000; //So that a protestor will be added on the very first tick
     m_minTicksBetweenProtestors = fmax(25, 200 - getLevel());
     m_targetNumOfProtestors = fmin(15, 2 + getLevel() * 1.5);
     
@@ -65,7 +65,16 @@ int StudentWorld::move(){
     
     //Add protestors if needed
     if(m_ticksSinceLastProtestorAdded > m_minTicksBetweenProtestors && m_numProtestors < m_targetNumOfProtestors){
-        addActor(new RegularProtestor(this));
+        
+        int p = fmin(90, getLevel()*10 + 30);
+        int i = rand() % 100 + 1;
+        if(i <= p){ 
+            addActor(new HardCoreProtestor(this));
+        }
+        else{
+            addActor(new RegularProtestor(this));
+        }
+        
         m_ticksSinceLastProtestorAdded = -1;
         m_numProtestors++;
     }

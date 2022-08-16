@@ -326,14 +326,14 @@ void Barrel::doSomething(){
 
 //Protestor Class function implementations:
 
-Protestor::Protestor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : Actor(myWorld, imageID, startX, startY, dir, size, depth){}
+Protestor::Protestor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : Actor(myWorld, imageID, startX, startY, dir, size, depth){
+    setVisible(true); //Protestors always start out as visible
+}
 
 
 //RegularProtestor class function implementations:
 
 RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_PROTESTER, 60, 60, left, 1.0, 0){
-    
-    setVisible(true); //Regular protestors start out as visible
     
     m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
     m_hitPoints = 5;
@@ -346,9 +346,6 @@ RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Protestor(myWorld, T
 
 char RegularProtestor::getGameID() const{
     return 'p';
-}
-int RegularProtestor::generateNumSquaresToMove(){
-    return rand() % 53 + 8;
 }
 
 bool RegularProtestor::wantsToLeave(){
@@ -378,9 +375,17 @@ void RegularProtestor::annoy(int howMuch){
     } //Make sure points are given in the other classes
 }
 
+void RegularProtestor::bribe(){
+    getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
+    getWorld()->increaseScore(25);
+    m_leaveTheOilField = true;
+    m_tickCount = 0;
+}
+
 void RegularProtestor::doSomething(){
     if(!getLiveStatus())
         return;
+    
     
     if(m_tickCount > 0){
         m_tickCount--;
@@ -470,7 +475,11 @@ void RegularProtestor::doSomething(){
     return;
 }
 
-bool RegularProtestor::justTurned90(Direction d1, Direction d2){
+int Protestor::generateNumSquaresToMove(){
+    return rand() % 53 + 8;
+}
+
+bool Protestor::justTurned90(Direction d1, Direction d2){
     if(d1 == up || d1 == down){
         if(d2 == right || d2 == left)
             return true;
@@ -486,7 +495,7 @@ bool RegularProtestor::justTurned90(Direction d1, Direction d2){
 }
 
 
-bool RegularProtestor::atIntersection(){
+bool Protestor::atIntersection(){
     Direction d = getDirection();
     if(d == up || d == down){
         if(!isViableDirection(left) && !isViableDirection(right))
@@ -528,9 +537,7 @@ bool RegularProtestor::atIntersection(){
     }
 }
 
-
-
-bool RegularProtestor::isViableDirection(Direction d){
+bool Protestor::isViableDirection(Direction d){
     int x = getX();
     int y = getY();
     if(d == up){
@@ -568,7 +575,7 @@ bool RegularProtestor::isViableDirection(Direction d){
     return true;
 }
 
-GraphObject::Direction RegularProtestor::generateRandomDirection(){
+GraphObject::Direction Protestor::generateRandomDirection(){
     int i = rand() % 4;
     if(i == 0)
         return up;
@@ -580,7 +587,7 @@ GraphObject::Direction RegularProtestor::generateRandomDirection(){
         return right;
         
 }
-void RegularProtestor::faceTunnelMan(){
+void Protestor::faceTunnelMan(){
     int x = getX();
     int y = getY();
     
@@ -612,7 +619,7 @@ void RegularProtestor::faceTunnelMan(){
 //
 //}
 
-bool RegularProtestor::withinShoutingDistance(){
+bool Protestor::withinShoutingDistance(){
     
     int x = getX();
     int y = getY();
@@ -635,7 +642,7 @@ bool RegularProtestor::withinShoutingDistance(){
     return false;
 }
 
-bool RegularProtestor::canMoveTowardTunnelMan(){
+bool Protestor::canMoveTowardTunnelMan(){
     int x = getX();
     int y = getY();
     int tX = getWorld()->getPlayerX();
@@ -673,6 +680,136 @@ bool RegularProtestor::canMoveTowardTunnelMan(){
         }
     }
     return true;
+}
+
+//HardcoreProtestor class function implementations
+
+HardCoreProtestor::HardCoreProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_HARD_CORE_PROTESTER, 60, 60, left, 1.0, 0){
+    
+    m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
+    m_leaveTheOilField = false;
+    m_hitPoints = 20;
+    
+    m_tickCount = 0;
+    m_NonRestingTicksSinceShout = 0;
+    m_NonRestingTicksSinceTurn = 0;
+}
+
+char HardCoreProtestor::getGameID() const{
+    return 'P'; 
+}
+
+void HardCoreProtestor::doSomething(){
+    if(!getLiveStatus())
+        return;
+    
+    if(m_tickCount > 0){ //In a rest state
+        m_tickCount--;
+        return;
+    }
+    
+    //int ticksToWait = fmax(0, 3 - getWorld()->getLevel() / 4);
+    int ticksToWait = 8;
+    m_tickCount = ticksToWait; 
+    
+    if(m_leaveTheOilField){ //FIX THIS
+        setLiveStatus(false);
+        return ;
+    }
+    
+    if(withinShoutingDistance()){
+        if(m_NonRestingTicksSinceShout >= 15){
+            getWorld()->getTunnelMan()->annoy(2);
+            getWorld()->playSound(SOUND_PROTESTER_YELL);
+            m_NonRestingTicksSinceShout = 0;
+        }
+        else{
+            m_NonRestingTicksSinceShout++;
+        }
+        m_NonRestingTicksSinceTurn++;
+        return;
+    }
+    
+    if(canMoveTowardTunnelMan()){
+        Direction d = getDirection();
+        
+        faceTunnelMan();
+        
+        if(justTurned90(d, getDirection()))
+            m_NonRestingTicksSinceTurn = -1;
+        
+        
+        
+        m_numSquaresToMoveInCurrentDirection = 0;
+        move();
+        
+        m_NonRestingTicksSinceShout++;
+        m_NonRestingTicksSinceTurn++;
+        return;
+    }
+    
+    //At this point the protestor is not near and does not see the TunnelMan
+    
+    m_numSquaresToMoveInCurrentDirection--;
+    if(m_numSquaresToMoveInCurrentDirection <= 0){
+        Direction d;
+        Direction d2 = getDirection();
+        do{
+            d = generateRandomDirection();
+            setDirection(d);
+        }while(!isViableDirection(d));
+        
+        if(justTurned90(d2, d))
+            m_NonRestingTicksSinceTurn = -1;
+        
+        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
+    }
+        
+    
+    if(m_NonRestingTicksSinceTurn >= 200 && atIntersection()){
+        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
+        
+        m_NonRestingTicksSinceTurn = -1;
+    }
+    
+    if(isViableDirection(getDirection()))
+        move();
+    else
+        m_numSquaresToMoveInCurrentDirection = 0;
+    
+    m_NonRestingTicksSinceShout++;
+    m_NonRestingTicksSinceTurn++;
+    return;
+    
+}
+
+void HardCoreProtestor::annoy(int howMuch){
+    if(m_leaveTheOilField)
+        return;
+    
+    m_hitPoints -= howMuch;
+    if(m_hitPoints > 0){
+        getWorld()->playSound(SOUND_PROTESTER_ANNOYED);
+        int stunnedTicks = fmax(50, 100 - getWorld()->getLevel() * 10);
+        m_tickCount = stunnedTicks; //make the protestor stunned
+    }
+    else{
+        //If he died because of a squirt
+        if(howMuch == 2)
+            getWorld()->increaseScore(250);
+        //Points allocated for dying by means of a boulder occur in the boulder class
+        
+        changeAnnoyableStatus();
+        m_leaveTheOilField = true;
+        getWorld()->playSound(SOUND_PROTESTER_GIVE_UP);
+        m_tickCount = 0;
+    }
+}
+
+void HardCoreProtestor::bribe(){
+    getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
+    getWorld()->increaseScore(50);
+    m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
 }
 
 
@@ -895,37 +1032,12 @@ void Gold::doSomething(){
         
     }
     else{
-        Actor* p = getWorld()->findActorWithinRadius(getX(), getY(), 3, 'P');
-        p = getWorld()->findActorWithinRadius(getX(), getY(), 3, 'p');
-        if(p != nullptr){
-            //TODO: bribe the protestor
-            getWorld()->increaseScore(25);
-            getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
-            p->setLiveStatus(false);
-            
-
+        Actor* p = getWorld()->findActorWithinRadius(getX(), getY(), 3, 'p');
+        if(p == nullptr)
+            p = getWorld()->findActorWithinRadius(getX(), getY(), 3, 'P');
+        if(p != nullptr){ //Some type of protestor was found within the radius
+            p->bribe(); //Bribe the protestor
         }
     }
 }
-
-
-
-
-//Waterpool class function implementations:
-
-//Protestor class function implementations:
-//Protestor::Protestor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : Actor(myWorld, imageID, startX, startY, dir, size, depth){
-//    m_hitPoints = 5;
-//}
-//
-//void Protestor::setHitPoints(int num){
-//    m_hitPoints = num;
-//}
-//
-//int Protestor::getHitPoints() const{
-//    return m_hitPoints;
-//}
-
-
-//HardcoreProtestor class function implementationss
 

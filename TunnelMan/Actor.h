@@ -21,6 +21,7 @@ public:
     virtual void annoy(int howMuch){}
     virtual void changeAnnoyableStatus();
     virtual bool isAnnoyable();
+    virtual void bribe(){}
     
     //Move the actor one square in it's current direction if it stays within bounds
     void move();
@@ -108,6 +109,17 @@ public:
 
     virtual ~Protestor(){}
     
+protected:
+    bool justTurned90(Direction d1, Direction d2);
+    
+    Direction generateRandomDirection();
+    void changeDirectionInOrderToExit();
+    bool withinShoutingDistance();
+    void faceTunnelMan();
+    bool canMoveTowardTunnelMan();
+    int generateNumSquaresToMove();
+    bool isViableDirection(Direction d);
+    bool atIntersection(); //If the protestor is at the intersection, it will return true and rotate it 90 degrees
 private:
 
 };
@@ -119,6 +131,7 @@ public:
     virtual char getGameID() const;
     virtual void annoy(int howMuch);
     bool wantsToLeave();
+    virtual void bribe();
     
 private:
     int m_numSquaresToMoveInCurrentDirection;
@@ -128,18 +141,26 @@ private:
     int m_tickCount;
     int m_NonRestingTicksSinceShout;
     int m_NonRestingTicksSinceTurn;
-    
-    bool justTurned90(Direction d1, Direction d2);
-    
-    Direction generateRandomDirection();
-    void changeDirectionInOrderToExit();
-    bool withinShoutingDistance();
-    void faceTunnelMan();
-    bool canMoveTowardTunnelMan();
-    int generateNumSquaresToMove();
-    bool isViableDirection(Direction d);
-    bool atIntersection(); //If the protestor is at the intersection, it will return true and rotate it 90 degrees
 };
+
+class HardCoreProtestor : public Protestor{
+public:
+    HardCoreProtestor(StudentWorld* myWorld);
+    virtual void doSomething();
+    virtual char getGameID() const;
+    virtual void annoy(int howMuch);
+    virtual void bribe(); 
+    
+private:
+    int m_numSquaresToMoveInCurrentDirection;
+    bool m_leaveTheOilField;
+    int m_hitPoints;
+    
+    int m_tickCount;
+    int m_NonRestingTicksSinceShout;
+    int m_NonRestingTicksSinceTurn;
+};
+
 
 class Squirt : public Actor{
 public:
