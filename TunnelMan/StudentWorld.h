@@ -16,7 +16,7 @@ class Earth;
 class TunnelMan;
 class Boulder;
 class Squirt;
-// Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
+class RegularProtestor;
 
 class StudentWorld : public GameWorld
 {
@@ -37,13 +37,15 @@ public:
     void removeEarth(int x, int y);
     
     //returns whether there are earth objects within a given location 4x4 location specfied by the bottom left corner. If the location is not valid, it returns false anyways
-    bool earthAt(int x, int y) const; 
+    bool earthAt(int x, int y) const;
     
     //returns whether there is an active actor with the given character ID within the specified radius
     bool actorWithinRadius(int x, int y, int radius, char ID);
     
-    //annoys all active protestors within the radius an amount 'howMuch'
-    void annoyProtestorsWithinRadius(int x, int y, int radius, int howMuch);
+    Actor* findActorWithinRadius(int x, int y, int radius, char charID);
+    
+    //annoys all active protestors within the radius
+    bool annoyProtestorsWithinRadius(int x, int y, int radius, int howMuch);
     
     //returns whether the tunnelman is within the given radius
     bool tunnelManWithinRadius(int x, int y, int radius);
@@ -75,37 +77,41 @@ public:
     //returns whether a given coordinate is located within the game's playing field
     bool inField(int x, int y) const;
     
-    bool actorInField(int x, int y) const; 
+    bool actorInField(int x, int y) const;
     
     void illuminateOilField(int x, int y, int radius);
     
-
+    void getMazeForExit(char[64][64]);
+    
+    
     
 private:
     Earth* m_earthTracker[VIEW_HEIGHT][VIEW_WIDTH];
     std::list<Actor*> m_gameObjects;
     TunnelMan* m_player;
-    
     int m_numBarrels;
     
     int m_minTicksBetweenProtestors;
     int m_ticksSinceLastProtestorAdded;
     int m_targetNumOfProtestors;
-    int m_numProtestors; 
+    int m_numProtestors;
     
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
     void populateFieldWithBarrels();
-//    void populateFieldWithNuggets();
+    void populateFieldWithNuggets();
     
     bool thereAreObjectsTooClose(int x, int y);
-    bool playerCompletedLevel(); 
+    bool playerCompletedLevel();
     
-    double distanceApart(int x, int y, int x2, int y2); 
-    bool nearTunnel(int x, int y) const; 
+    double distanceApart(int x, int y, int x2, int y2);
+    bool nearTunnel(int x, int y) const;
     void updateDisplayText();
     std::string formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score);
+
+//    void createProtestorExitMaze();
 
 };
 
 #endif // STUDENTWORLD_H_
+
