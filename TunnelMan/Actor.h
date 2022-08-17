@@ -3,12 +3,17 @@
 
 #include "GraphObject.h"
 
+//Constants:
+const int squirtTravelDistance = 4; 
+const int ticksBeforeBoulderFalls = 30;
+const int squirtDamage = 2; 
+
 class StudentWorld;
 
 //A base class for all the games Objects
 class Actor : public GraphObject{
 public:
-    Actor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0, bool annoyable = true);
+    Actor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0);
     
     void setLiveStatus(bool b);
     bool getLiveStatus() const;
@@ -16,23 +21,22 @@ public:
     StudentWorld* getWorld() const;
     
     virtual char getGameID() const = 0;
+    virtual void doSomething() = 0;
     
     //Default annoy function on an actor does nothing
     virtual void annoy(int howMuch){}
-    virtual void changeAnnoyableStatus();
-    virtual bool isAnnoyable();
+    //Default bribe function on an actor does nothing
     virtual void bribe(){}
-    
+
     //Move the actor one square in it's current direction if it stays within bounds
     void move();
     
     virtual ~Actor(){}
     
-    virtual void doSomething() = 0;
+
 private:
     StudentWorld* m_world;
     bool m_isAlive;
-    bool m_annoyable;
 };
 
 class Earth : public Actor{
@@ -56,26 +60,27 @@ public:
     virtual void annoy(int howMuch);
     
     //Getters and Setters
+    
+    int getNumBarrelsFound();
+    void incrementBarrelsFound();
+    
     void incrementNumNuggets();
-    int getNumNuggets() const;
+    int getNumNuggets();
     
     void incrementNumSonarCharges();
-    int getNumSonarCharges() const;
+    int getNumSonarCharges();
     
-    //This function adds 5 units of squirts to the Tunnelman's inventory and increases the points by 100
-    void incrementNumWater();
-    int getNumWater() const;
+    void incrementNumSquirts();
+    int getNumSquirts();
     
-    void incrementBarrelsFound();
-    int getNumBarrelsFound();
-    
-    void setHitPoints(int points);
-    int getHitPoints() const;
+    int getHitPoints(); 
+
+    virtual ~TunnelMan(){}
     
 private:
-    int m_numWater;
+    int m_numSquirts;
     int m_numSonarCharges;
-    int m_numNuggets;
+    int m_numGoldNuggets;
     int m_numBarrelsFound;
     int m_hitPoints;
 
@@ -88,6 +93,7 @@ public:
     Boulder(StudentWorld* myWorld, int startX, int startY);
     virtual char getGameID() const;
     virtual void doSomething();
+    virtual ~Boulder(){}
 private:
     int state; //0 for stable, 1 for waiting, 2 for falling
     int ticksElapsed;
@@ -95,151 +101,167 @@ private:
     bool boulderCanFall() const;
 };
 
-class Barrel : public Actor{
+class Goodie : public Actor{
+public:
+    Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, bool tunnelManCanPickUp, bool temp, int tickCount = -1, int ticksToWait = -1);
+    
+    virtual void doSomething();
+    
+    virtual void doSomethingToTunnelMan() = 0;
+    virtual void doSomethingToProtestor() = 0;
+    
+    virtual ~Goodie(){}
+    
+private:
+    bool m_tunnelManCanPickUp;
+    bool m_temporary;
+    int m_ticksToWait;
+    int m_tickCount;
+};
+
+class Barrel : public Goodie{
 public:
     Barrel(StudentWorld* myWorld, int startX, int startY);
-    virtual void doSomething();
     virtual char getGameID() const;
+    virtual void doSomethingToProtestor(){}
+    virtual void doSomethingToTunnelMan(); 
+};
+
+class Squirt : public Actor{
+public:
+    Squirt(StudentWorld* myWorld, int startX, int startY);
+    virtual char getGameID() const;
+    
+    virtual void doSomething(); 
+    
+private:
+    int m_travelDistance;
 };
 
 
 class Protestor : public Actor{
 public:
-    Protestor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth);
-
+    Protestor(StudentWorld* myWorld, int imageID, int hitPoints);
+    
+    virtual void doSomething(); 
+    
+    virtual bool canMoveTowardTunnelMan() = 0;
+    virtual void changeDirectionToMoveTowardTunnelMan() = 0;
+    
+    virtual void annoy(int howMuch); 
+    
     virtual ~Protestor(){}
     
 protected:
-    bool justTurned90(Direction d1, Direction d2);
-    
-    Direction generateRandomDirection();
-    void changeDirectionInOrderToExit();
-    bool withinShoutingDistance();
-    void faceTunnelMan();
-    bool canMoveTowardTunnelMan();
+    //Returns a number between 8 and 60 inclusive
     int generateNumSquaresToMove();
+    //Returns whether the protestor is within shouting distance of the tunnelman, and facing him
+    bool withinShoutingDistanceAndFacingTunnelMan();
+    //Returns whether the protestor just turned 90 degrees
+    bool justTurned90(Direction d1, Direction d2);
+    //Returns a random direction
+    Direction generateRandomDirection();
+    //Returns whether the direction is viable for the protestor to change to
     bool isViableDirection(Direction d);
-    bool atIntersection(); //If the protestor is at the intersection, it will return true and rotate it 90 degrees
+    //Returns whether the protestor is at an intersection
+    bool atIntersection();
+    //Changes direction (if needed) so that the protestor is on its way to leave the oil field
+    void changeDirectionToExit();
+    
 private:
-
+    int m_hitPoints;
+    int m_numSquaresToMoveInCurrentDirection;
+    int m_tickCount;
+    int m_nonRestingTicksSinceTurn;
+    int m_nonRestingTicksSinceShout;
+    bool m_leaveTheOilField;
+    
 };
+
 
 class RegularProtestor : public Protestor{
 public:
     RegularProtestor(StudentWorld* myWorld);
-    virtual void doSomething();
     virtual char getGameID() const;
-    virtual void annoy(int howMuch);
-    bool wantsToLeave();
-    virtual void bribe();
+    virtual bool canMoveTowardTunnelMan();
+    virtual void changeDirectionToMoveTowardTunnelMan(); 
     
 private:
-    int m_numSquaresToMoveInCurrentDirection;
-    bool m_leaveTheOilField;
-    int m_hitPoints;
-    
-    int m_tickCount;
-    int m_NonRestingTicksSinceShout;
-    int m_NonRestingTicksSinceTurn;
+    //Changes direction so that the protestor faces the tunnelman
+    void faceTunnelMan();
 };
 
-class HardCoreProtestor : public Protestor{
+class HardcoreProtestor : public Protestor{
 public:
-    HardCoreProtestor(StudentWorld* myWorld);
-    virtual void doSomething();
+    HardcoreProtestor(StudentWorld* myWorld);
     virtual char getGameID() const;
-    virtual void annoy(int howMuch);
-    virtual void bribe(); 
+    virtual bool canMoveTowardTunnelMan();
+    virtual void changeDirectionToMoveTowardTunnelMan();
     
 private:
-    int m_numSquaresToMoveInCurrentDirection;
-    bool m_leaveTheOilField;
-    int m_hitPoints;
-    
-    int m_tickCount;
-    int m_NonRestingTicksSinceShout;
-    int m_NonRestingTicksSinceTurn;
-};
-
-
-class Squirt : public Actor{
-public:
-    Squirt(StudentWorld* myWorld, TunnelMan* owner, int startX, int startY);
-    virtual char getGameID() const;
-    virtual void doSomething();
-private:
-    int m_travelDistance;
-    bool canMove(Direction d) const;
-    bool boulderAt(int x, int y) const;
-};
-
-class Goodie : public Actor{
-public:
-    Goodie(StudentWorld* myWorld, int imageID, int startX, int startY);
-    
-    virtual ~Goodie(){}
-    
-    virtual bool isAnnoyable(){return false;}
-    
-    
-private:
-
-};
-
-
-
-//Waterpool Class:
-class Waterpool : public Goodie{
-public:
-    Waterpool(StudentWorld* myWorld, int startX, int startY);
-    virtual char getGameID() const;
-    virtual void doSomething();
-private:
-    int m_tickCount;
-};
-
-class SonarKit : public Goodie{
-public:
-    SonarKit(StudentWorld* myWorld, int startX, int startY);
-    void doSomething();
-    char getGameID() const;
-private:
-    int m_tickCount;
-
-};
-
-
-class Gold : public Goodie{
-public:
-    Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp, bool m_permanent, int ticksToWait);
-    void doSomething();
-    char getGameID() const;
-    
-private:
-    int m_tickCount;
-    bool m_tunnelManCanPickUp;
-    bool m_permanent;
+    void faceTunnelMan();
 };
 
 
 
 
+//
 
-
-
-
-
-
-//class HardcoreProtestor : public Protestor{
+//
+//
+//
+////Waterpool Class:
+//class Waterpool : public Goodie{
 //public:
-//    HardcoreProtestor(StudentWorld* myWorld);
+//    Waterpool(StudentWorld* myWorld, int startX, int startY);
+//    virtual char getGameID() const;
+//    virtual void doSomething();
+//private:
+//    int m_tickCount;
+//};
+//
+//class SonarKit : public Goodie{
+//public:
+//    SonarKit(StudentWorld* myWorld, int startX, int startY);
 //    void doSomething();
 //    char getGameID() const;
-//
 //private:
+//    int m_tickCount;
 //
 //};
-
-
+//
+//
+//class Gold : public Goodie{
+//public:
+//    Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp, bool m_permanent, int ticksToWait);
+//    void doSomething();
+//    char getGameID() const;
+//    
+//private:
+//    int m_tickCount;
+//    bool m_tunnelManCanPickUp;
+//    bool m_permanent;
+//};
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+////class HardcoreProtestor : public Protestor{
+////public:
+////    HardcoreProtestor(StudentWorld* myWorld);
+////    void doSomething();
+////    char getGameID() const;
+////
+////private:
+////
+////};
+//
+//
 #endif // ACTOR_H_
 

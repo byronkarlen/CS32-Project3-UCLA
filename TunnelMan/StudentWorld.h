@@ -3,13 +3,13 @@
 
 #include "GameWorld.h"
 #include "GameConstants.h"
+#include "GraphObject.h"
 #include <string>
-#include <list>
+#include <vector>
+
 
 //Constants:
 const int actorSize = 4;
-const int ticksBeforeFalling = 30;
-const int squirtInitialTravelDistance = 4;
 
 class Actor;
 class Earth;
@@ -33,61 +33,67 @@ public:
     
     //Additional Functions:
     
+    //adds an actor to the field (except for Earth) to the field
+    void addActor(Actor* a);
+    //removes an actor (except for Earth and TunnelMan) from a location at the field
+    void removeActor(Actor* a);
+    
+    //returns whether the tunnelman is within the given radius
+    bool tunnelManWithinRadius(int x, int y, int radius);
+    
+    //Returns a pointer to the TunnelMan
+    TunnelMan* getTunnelMan() const;
+    
+    //Returns a vector of all the actors with the given characterID within the given radius
+    std::vector<Actor*> findActorsWithinRadius(int x, int y, int radius, char charID);
+    
+    //Returns a vector of all the protestors within the given radius
+    std::vector<Actor*> findProtestorsWithinRadius(int x, int y, int radius);
+    
     //removes earth objects within a 4x4 location specified by the bottom left corner. If there is no earth object at the given location, it does nothing
     void removeEarth(int x, int y);
     
     //returns whether there are earth objects within a given location 4x4 location specfied by the bottom left corner. If the location is not valid, it returns false anyways
     bool earthAt(int x, int y) const;
     
-    //returns whether there is an active actor with the given character ID within the specified radius
-    bool actorWithinRadius(int x, int y, int radius, char ID);
+    bool boulderAt(int x, int y) const; 
     
-    Actor* findActorWithinRadius(int x, int y, int radius, char charID);
     
-    //annoys all active protestors within the radius
-    bool annoyProtestorsWithinRadius(int x, int y, int radius, int howMuch);
     
-    //returns whether the tunnelman is within the given radius
-    bool tunnelManWithinRadius(int x, int y, int radius);
+    //annoys all active protestors present within the given radius
+    bool killProtestorsWithinRadius(int x, int y, int radius);
     
-//    Actor* findActorWithinRadius(int x, int y, int radius, char ID);
+    //annoys a single active protestor present within the given radius
+    bool squirtProtestorWithinRadius(int x, int y, int radius);
     
-    //adds an actor to the field (except for Earth) to the field
-    void addActor(Actor* a);
-    //removes an actor (except for Earth and TunnelMan) from a location at the field
-    void removeActor(Actor* a);
+    //illuminates all actors in the oil field within the given radius
+    void illuminateOilField(int x, int y, int radius);
     
-    //returns a pointer to an actor (with a certain characterID) found at the given location. If none is found, returns nullptr
-    Actor* findActor(int x, int y, char c) const;
+    //bribes a single protestor present within the radius
+    void bribeProtestor(int x, int y, int radius);
     
-    //returns whether an actor (with a certain characterID) is present within a 4x4 location starting with (x,y) at the bottom left
-    bool actorAt(int x, int y, char c) const;
+    GraphObject::Direction getDirectionForProtestorExit(Actor* p); 
     
-    //Returns a pointer to the TunnelMan
-    TunnelMan* getTunnelMan() const;
+    bool willHitBoulderOrEdge(int x, int y, GraphObject::Direction d);
+    bool willHitBoulderEdgeOrEarth(int x, int y, GraphObject::Direction d);
+
     
-    //Returns whether any part of the TunnelMan is present at a given location
-    bool isTunnelManAt(int x, int y) const;
-    
-    //returns the x-coordinate of the TunnelMan
-    int getPlayerX() const;
-    //returns the y-coordinate of the TunnelMan
-    int getPlayerY() const;
 
     //returns whether a given coordinate is located within the game's playing field
     bool inField(int x, int y) const;
     
-    bool actorInField(int x, int y) const;
+    //returns whether an actor located at the given coordinate would be entirely within the game's playing field
+    bool actorWouldBeWithinField(int x, int y) const;
+
     
-    void illuminateOilField(int x, int y, int radius);
+
     
-    void getMazeForExit(char[64][64]);
     
     
     
 private:
     Earth* m_earthTracker[VIEW_HEIGHT][VIEW_WIDTH];
-    std::list<Actor*> m_gameObjects;
+    std::vector<Actor*> m_gameObjects;
     TunnelMan* m_player;
     int m_numBarrels;
     
@@ -96,10 +102,20 @@ private:
     int m_targetNumOfProtestors;
     int m_numProtestors;
     
+    int m_maze[VIEW_HEIGHT][VIEW_WIDTH];
+    struct mazeLocation{
+        int x;
+        int y;
+        mazeLocation(int a, int b){
+            x = a;
+            y = b;
+        }
+    }; 
+    
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
     void populateFieldWithBarrels();
-    void populateFieldWithNuggets();
+//    void populateFieldWithNuggets();
     
     bool thereAreObjectsTooClose(int x, int y);
     bool playerCompletedLevel();
@@ -109,7 +125,7 @@ private:
     void updateDisplayText();
     std::string formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score);
 
-//    void createProtestorExitMaze();
+
 
 };
 
