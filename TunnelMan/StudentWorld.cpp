@@ -16,7 +16,7 @@ int StudentWorld::init()
     populateFieldWithEarth();
     populateFieldWithBoulders();
     populateFieldWithBarrels();
-//    populateFieldWithNuggets();
+    populateFieldWithNuggets();
     
 
 
@@ -26,15 +26,15 @@ int StudentWorld::init()
     m_minTicksBetweenProtestors = fmax(25, 200 - getLevel());
     m_targetNumOfProtestors = fmin(15, 2 + getLevel() * 1.5);
     
-    
+
     //Create the tunnelman
     m_player = new TunnelMan(this); //Create a new TunnelMan
-    
     
     return GWSTATUS_CONTINUE_GAME; //must return this to continue the game
 }
 
 int StudentWorld::move(){
+    
     updateDisplayText();
     
     if(m_player->getLiveStatus())
@@ -58,7 +58,7 @@ int StudentWorld::move(){
     for(int i = 0; i != m_gameObjects.size(); i++){
         if(!m_gameObjects[i]->getLiveStatus()){
             removeActor(m_gameObjects[i]);
-            i--; 
+            i--;
         }
     }
     
@@ -79,30 +79,30 @@ int StudentWorld::move(){
     }
     //UPDATE TICK COUNTS
     m_ticksSinceLastProtestorAdded++;
-//    
-//    
-//    //Add sonar/water if needed
-//    int g = getLevel() * 25 + 300;
-//    int i = rand() % g;
-//    if(i == 0){
-//        int j = rand() % 5;
-//        if(j == 0){//Add a Sonarkit
-//            Actor* a = new SonarKit(this, 0, 60);
-//            addActor(a);
-//        }
-//        else{//Add a waterpool
-//            
-//            int x;
-//            int y;
-//            do{
-//                x = rand() % 61;
-//                y = rand() % 61;
-//            }while(earthAt(x, y));
-//            
-//            Actor* a = new Waterpool(this, x, y);
-//            addActor(a);
-//        }
-//    }
+    
+    
+    //Add sonar/water if needed
+    int g = getLevel() * 25 + 300;
+    int i = rand() % g;
+    if(i == 0){
+        int j = rand() % 5;
+        if(j == 0){//Add a Sonarkit
+            Actor* a = new SonarKit(this);
+            addActor(a);
+        }
+        else{//Add a waterpool
+            
+            int x;
+            int y;
+            do{
+                x = rand() % 61;
+                y = rand() % 61;
+            }while(earthAt(x, y));
+            
+            Actor* a = new WaterPool(this, x, y);
+            addActor(a);
+        }
+    }
     
     if(m_player->getLiveStatus())
         return GWSTATUS_CONTINUE_GAME;
@@ -152,6 +152,21 @@ bool StudentWorld::earthAt(int x, int y) const{
     return false;
 }
 
+
+
+bool StudentWorld::boulderWithinRadius3(int x, int y) const {
+    for(int k = 0; k < m_gameObjects.size(); k++){
+        if(m_gameObjects[k]->getGameID() == 'B'){
+            int bX = m_gameObjects[k]->getX();
+            int bY = m_gameObjects[k]->getY();
+            
+            if(distanceApart(x, y, bX, bY) <= 3)
+                return true;
+        }
+    }
+    return false;
+}
+
 bool StudentWorld::boulderAt(int x, int y) const{
     
     for(int k = 0; k < m_gameObjects.size(); k++){
@@ -171,7 +186,17 @@ bool StudentWorld::boulderAt(int x, int y) const{
 
 }
 
-void StudentWorld::illuminateOilField(int x, int y, int radius){
+bool StudentWorld::actorWillOverlapBoulder(int x, int y) const{
+    for(int i = 0; i < actorSize; i++){
+        for(int j = 0; j < actorSize; j++){
+            if(boulderAt(x+j, y+i))
+                return true;
+        }
+    }
+    return false;
+}
+
+void StudentWorld::illuminateOilField(int x, int y, int radius) {
     vector<Actor*>::iterator it;
     for(it = m_gameObjects.begin(); it != m_gameObjects.end(); it++){
         if(distanceApart(x, y, (*it)->getX(), (*it)->getY()) < radius)
@@ -228,8 +253,7 @@ bool StudentWorld::squirtProtestorWithinRadius(int x, int y, int radius){
         Actor* a = m_gameObjects[i];
         vector<Actor*> doomed = findProtestorsWithinRadius(x, y, radius);
         if(doomed.size() != 0){
-//            doomed[0]->annoy(squirtDamage); //Allocate points in the protestor::annoy function
-            doomed[0]->annoy(100); 
+            doomed[0]->annoy(squirtDamage); //Allocate points in the protestor::annoy function
             return true;
         }
     }
@@ -294,7 +318,8 @@ bool StudentWorld::willHitBoulderEdgeOrEarth(int x, int y, GraphObject::Directio
     return false;
 }
 
-GraphObject::Direction StudentWorld::getDirectionForProtestorExit(Actor* p){
+GraphObject::Direction StudentWorld::getDirectionToLocation(Actor* p, int xLoc, int yLoc){
+    
     for(int i = 0; i < VIEW_HEIGHT; i++){
         for(int j = 0; j < VIEW_WIDTH; j++){
             m_maze[i][j] = 0;
@@ -307,7 +332,7 @@ GraphObject::Direction StudentWorld::getDirectionForProtestorExit(Actor* p){
         }
     }
     queue<mazeLocation> q;
-    q.push(mazeLocation(60, 60));
+    q.push(mazeLocation(xLoc, yLoc));
     
     while(!q.empty()){
         mazeLocation current = q.front();
@@ -367,8 +392,6 @@ GraphObject::Direction StudentWorld::getDirectionForProtestorExit(Actor* p){
     if(right < lowestDir)
         lowestDir = right;
     
-    assert(lowestDir != notValid);
-    
     if(lowestDir == up)
         return GraphObject::up;
     else if(lowestDir == down)
@@ -380,9 +403,88 @@ GraphObject::Direction StudentWorld::getDirectionForProtestorExit(Actor* p){
     
 }
 
+bool StudentWorld::hardCoreProtestorCanMoveTowardTunnelMan(Actor *p){
+    for(int i = 0; i < VIEW_HEIGHT; i++){
+        for(int j = 0; j < VIEW_WIDTH; j++){
+            m_maze[i][j] = 0;
+        }
+    }
+    bool visited[VIEW_HEIGHT][VIEW_WIDTH];
+    for(int i = 0; i < VIEW_HEIGHT; i++){
+        for(int j = 0; j < VIEW_WIDTH; j++){
+            visited[i][j] = false;
+        }
+    }
+    queue<mazeLocation> q;
+    q.push(mazeLocation(m_player->getX(), m_player->getY()));
+    
+    while(!q.empty()){
+        mazeLocation current = q.front();
+        q.pop();
+        int x = current.x;
+        int y = current.y;
+        
+        if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::up) && !visited[y+1][x]){
+            visited[y+1][x] = true;
+            q.push(mazeLocation(x, y+1));
+            m_maze[y+1][x] = m_maze[y][x] + 1;
+        }
+        if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::down) && !visited[y-1][x]){
+            visited[y-1][x] = true;
+            q.push(mazeLocation(x, y-1));
+            m_maze[y-1][x] = m_maze[y][x] + 1;
+        }
+        if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::right) && !visited[y][x+1]){
+            visited[y][x+1] = true;
+            q.push(mazeLocation(x+1, y));
+            m_maze[y][x+1] = m_maze[y][x] + 1;
+        }
+        if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::left) && !visited[y][x-1]){
+            visited[y][x-1] = true;
+            q.push(mazeLocation(x-1, y));
+            m_maze[y][x-1] = m_maze[y][x] + 1;
+        }
+    }
+    
+    int protestorX = p->getX();
+    int protestorY = p->getY();
+    
+    const int notValid = 100;
+    int up = notValid;
+    int down = notValid;
+    int left = notValid;
+    int right = notValid;
+    
+    if(inField(protestorX, protestorY+1) && visited[protestorY+1][protestorX]){
+        up = m_maze[protestorY+1][protestorX];
+    }
+    if(inField(protestorX, protestorY-1) && visited[protestorY-1][protestorX]){
+        down = m_maze[protestorY-1][protestorX];
+    }
+    if(inField(protestorX+1, protestorY) && visited[protestorY][protestorX+1]){
+        right = m_maze[protestorY][protestorX+1];
+    }
+    if(inField(protestorX-1, protestorY) && visited[protestorY][protestorX-1]){
+        left = m_maze[protestorY][protestorX-1];
+    }
+    
+    if(up < 16 || down < 16 || left < 16 || right < 16)
+        return true;
+    else
+        return false; 
+}
+
+void StudentWorld::bribeProtestor(int x, int y, int radius){
+    vector<Actor*> protestor = findProtestorsWithinRadius(x, y, radius);
+    if(protestor.size() == 0)
+        return;
+    
+    protestor[0]->bribe();
+}
+
 //Private Function Implementations
                
-double StudentWorld::distanceApart(int x, int y, int x2, int y2){
+double StudentWorld::distanceApart(int x, int y, int x2, int y2) const {
     int diffX = x2 - x;
     int diffY = y2 - y;
     int total = diffX * diffX + diffY * diffY;
@@ -392,8 +494,6 @@ double StudentWorld::distanceApart(int x, int y, int x2, int y2){
 void StudentWorld::addActor(Actor* a){
     m_gameObjects.push_back(a);
 }
-
-
 
 
 void StudentWorld::removeActor(Actor* a){
@@ -475,33 +575,23 @@ void StudentWorld::populateFieldWithBoulders(){
     }
 }
 
-//void StudentWorld::populateFieldWithNuggets(){
-//    int numNuggets;
-//    int alt = 5 - getLevel() / 2;
-//    if(alt > 2)
-//        numNuggets = alt;
-//    else
-//        numNuggets = 2;
-//
-//    for(int i = 0; i < numNuggets; i++){
-//        int x, y;
-//        do{
-//            x = rand() % 60;
-//            y = rand() % 56;
-//        }while(thereAreObjectsTooClose(x, y));
-//
-//        Gold* g = new Gold(this, x, y, true, true, -1);
-//        addActor(g);
-//    }
-//}
-//
+void StudentWorld::populateFieldWithNuggets(){
+    int numNuggets = fmax(2, 5 - getLevel()/2);
+
+    for(int i = 0; i < numNuggets; i++){
+        int x, y;
+        do{
+            x = rand() % 60;
+            y = rand() % 56;
+        }while(thereAreObjectsTooClose(x, y));
+
+        Gold* g = new Gold(this, x, y, true);
+        addActor(g);
+    }
+}
+
 void StudentWorld::populateFieldWithBarrels(){
-    int numBarrels;
-    int alt = 2 + getLevel();
-    if(alt < 21)
-        numBarrels = alt;
-    else
-        numBarrels = 21;
+    int numBarrels = fmin(21, 2 + getLevel());
 
     m_numBarrels = numBarrels;
 

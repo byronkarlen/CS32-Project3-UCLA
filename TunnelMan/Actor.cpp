@@ -3,8 +3,6 @@
 
 using namespace std;
 
-
-
 /*                          Actor class method implementations:                         */
 
 Actor::Actor(StudentWorld* myWorld, int imageID, int startX, int startY, Direction dir, double size, unsigned int depth) : GraphObject(imageID, startX, startY, dir, size, depth){
@@ -102,18 +100,19 @@ void TunnelMan::doSomething(){
 
         }
         else if(ch == 'Z' || ch == 'z'){
-//            if(m_numSonarCharges > 0){
-//                m_numSonarCharges--;
-//                getWorld()->illuminateOilField(getX(), getY(), 12);
-//                getWorld()->playSound(SOUND_SONAR);
-//            }
+            if(m_numSonarCharges > 0){
+                m_numSonarCharges--;
+                getWorld()->illuminateOilField(getX(), getY(), 12);
+                getWorld()->playSound(SOUND_SONAR);
+            }
         }
         else if(ch == KEY_PRESS_TAB){
-//            if(m_numGoldNuggets > 0){
-//                Gold* g= new Gold(getWorld(), getX(), getY(), false, false, 100);
-//                getWorld()->addActor(g);
-//                m_numGoldNuggets--;
-//            }
+            if(m_numGoldNuggets > 0){
+                
+                Gold* g= new Gold(getWorld(), getX(), getY(), false);
+                getWorld()->addActor(g);
+                m_numGoldNuggets--;
+            }
 
         }
         //ch is one of the arrow keys
@@ -121,7 +120,7 @@ void TunnelMan::doSomething(){
             //*the TunnelMan cannot occupy a square that is less than or equal to a radius of 3 away from the center of any Boulder.
             if(ch == KEY_PRESS_RIGHT){
                 if(getDirection() == right){
-                    if(!myWorld->boulderAt(x+1, y))
+                    if(!myWorld->boulderWithinRadius3(x+1, y))
                        move();
                 }
                 else
@@ -129,7 +128,7 @@ void TunnelMan::doSomething(){
             }
             if(ch == KEY_PRESS_LEFT){
                 if(getDirection() == left){
-                    if(!myWorld->boulderAt(x-1, y))
+                    if(!myWorld->boulderWithinRadius3(x-1, y))
                         move();
                 }
                 else
@@ -137,7 +136,7 @@ void TunnelMan::doSomething(){
             }
             if(ch == KEY_PRESS_UP){
                 if(getDirection() == up){
-                    if(!myWorld->boulderAt(x, y+1))
+                    if(!myWorld->boulderWithinRadius3(x, y+1))
                         move();
                 }
                 else
@@ -145,7 +144,7 @@ void TunnelMan::doSomething(){
             }
             if(ch == KEY_PRESS_DOWN){
                 if(getDirection() == down){
-                    if(!myWorld->boulderAt(x, y-1))
+                    if(!myWorld->boulderWithinRadius3(x, y-1))
                         move();
                 }
                 else
@@ -157,7 +156,6 @@ void TunnelMan::doSomething(){
 
 void TunnelMan::incrementNumNuggets(){
     m_numGoldNuggets++;
-    getWorld()->increaseScore(10);
 }
 
 int TunnelMan::getNumNuggets(){
@@ -166,7 +164,6 @@ int TunnelMan::getNumNuggets(){
 
 void TunnelMan::incrementNumSonarCharges(){
     m_numSonarCharges ++;
-//    getWorld()->increaseScore(75);
 }
 
 int TunnelMan::getNumSonarCharges(){
@@ -175,10 +172,9 @@ int TunnelMan::getNumSonarCharges(){
 
 void TunnelMan::incrementNumSquirts(){
     m_numSquirts += 5;
-//    getWorld()->increaseScore(100);
 }
 int TunnelMan::getNumSquirts(){
-    return m_numSquirts; 
+    return m_numSquirts;
 }
 
 void TunnelMan::incrementBarrelsFound(){
@@ -190,11 +186,11 @@ int TunnelMan::getNumBarrelsFound(){
 }
 
 int TunnelMan::getHitPoints(){
-    return m_hitPoints; 
+    return m_hitPoints;
 }
 void TunnelMan::annoy(int howMuch){
     m_hitPoints -= howMuch;
-    if(m_hitPoints < 0){
+    if(m_hitPoints <= 0){
         setLiveStatus(false);
         getWorld()->playSound(SOUND_PLAYER_GIVE_UP);
     }
@@ -213,7 +209,7 @@ void TunnelMan::introduceSquirt(){
     if(getDirection() == down)
         startY -= actorSize;
     
-    if(startX <= 60 && startY <= 60 && !getWorld()->earthAt(startX, startY) && !getWorld()->boulderAt(startX, startY)){
+    if(getWorld()->actorWouldBeWithinField(startX, startY) && !getWorld()->earthAt(startX, startY) && !getWorld()->boulderWithinRadius3(startX, startY)){
         Squirt* s = new Squirt(getWorld(), startX, startY);
         getWorld()->addActor(s);
     }
@@ -283,23 +279,35 @@ bool Boulder::boulderCanFall() const{
 
 /*                      Goodie Class Function Implementations:                  */
 
-Goodie::Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, bool tunnelManCanPickUp, bool temp, int tickCount, int ticksToWait) : Actor(myWorld, imageID, startX, startY, right, 1.0, 2){
+Goodie::Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, bool tunnelManCanPickUp, bool temp) : Actor(myWorld, imageID, startX, startY, right, 1.0, 2){
+    
     //Goodies start out as invisible
     m_tunnelManCanPickUp = tunnelManCanPickUp;
+    
     m_temporary = temp;
-    m_tickCount = tickCount;
-    m_ticksToWait = ticksToWait;
+    
+    if(m_temporary)
+        m_ticksToWait = 500;
+        //m_ticksToWait = fmax(100, 300 - 10*getWorld()->getLevel());
+    else
+        m_ticksToWait = -1;
+    m_tickCount = 0;
 }
 
 void Goodie::doSomething(){
     if(!getLiveStatus())
         return;
+    if(!m_tunnelManCanPickUp)
+        setVisible(true);
     
     if(m_temporary){
-        if(m_tickCount < m_ticksToWait)
+        if(m_tickCount >= m_ticksToWait){
+            setLiveStatus(false);
+            return;
+        }
+        else
             m_tickCount++;
     }
-    m_tickCount = 0; 
     
     if(!isVisible() && getWorld()->tunnelManWithinRadius(getX(), getY(), 4)){
         setVisible(true);
@@ -307,14 +315,15 @@ void Goodie::doSomething(){
     }
     
     if(m_tunnelManCanPickUp && getWorld()->tunnelManWithinRadius(getX(), getY(), 3)){
-        setLiveStatus(false);
         doSomethingToTunnelMan();
+        setLiveStatus(false);
     }
     
     if(!m_tunnelManCanPickUp){
         vector<Actor*> protestors = getWorld()->findProtestorsWithinRadius(getX(), getY(), 3);
         if(protestors.size() != 0){
-            doSomethingToProtestor(); 
+            doSomethingToProtestor();
+            setLiveStatus(false);
         }
     }
 }
@@ -340,6 +349,69 @@ void Barrel::doSomethingToTunnelMan(){
 
 
 
+/*                          Waterpool Class Function Implementations                   */
+
+WaterPool::WaterPool(StudentWorld* myWorld, int startX, int startY) : Goodie(myWorld, TID_WATER_POOL, startX, startY, true, true){
+    setVisible(true);
+}
+
+char WaterPool::getGameID() const{
+    return 'W';
+}
+
+void WaterPool::doSomethingToTunnelMan(){
+    getWorld()->playSound(SOUND_GOT_GOODIE);
+    getWorld()->getTunnelMan()->incrementNumSquirts();
+    getWorld()->increaseScore(100);
+    
+}
+
+
+
+/*                          SonarKit Class Function Implementations                   */
+
+SonarKit::SonarKit(StudentWorld* myWorld) : Goodie(myWorld, TID_SONAR, 0, 60, true, true){
+    setVisible(true);
+}
+
+char SonarKit::getGameID() const{
+    return 'K';
+}
+
+void SonarKit::doSomethingToTunnelMan(){
+    getWorld()->playSound(SOUND_GOT_GOODIE);
+    getWorld()->getTunnelMan()->incrementNumSonarCharges();
+    getWorld()->increaseScore(75);
+}
+
+
+
+/*                          Gold Class Function Implementations                   */
+
+Gold::Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp) : Goodie(myWorld, TID_GOLD, startX, startY, tunnelManCanPickUp, !tunnelManCanPickUp){
+    
+    if(!tunnelManCanPickUp)
+        setVisible(true);
+}
+
+char Gold::getGameID() const{
+    return 'G';
+}
+
+void Gold::doSomethingToTunnelMan(){
+
+    getWorld()->playSound(SOUND_GOT_GOODIE);
+    getWorld()->getTunnelMan()->incrementNumNuggets();
+    getWorld()->increaseScore(10);
+    
+}
+void Gold::doSomethingToProtestor(){
+    getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
+    getWorld()->bribeProtestor(getX(), getY(), 3);
+    //The protestor class will handle the points allocated for successfully bribing a protestor
+}
+
+
 /*                          Squirt Class Implementation                                 */
 Squirt::Squirt(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_WATER_SPURT, startX, startY, myWorld->getTunnelMan()->getDirection(), 1.0, 1){
     m_travelDistance = squirtTravelDistance;
@@ -356,7 +428,7 @@ void Squirt::doSomething(){
         setLiveStatus(false);
         return;
     }
-    if(m_travelDistance == 0){
+    if(m_travelDistance <= 0){
         setLiveStatus(false);
         return;
     }
@@ -369,7 +441,6 @@ void Squirt::doSomething(){
     move();
     m_travelDistance--;
 }
-
 
 
 
@@ -432,7 +503,7 @@ void Protestor::doSomething(){
         Direction dNew = getDirection();
         if(justTurned90(dOld, dNew))
             m_nonRestingTicksSinceTurn = -1;
-        
+
         m_numSquaresToMoveInCurrentDirection = 0;
         move();
         
@@ -482,11 +553,38 @@ void Protestor::doSomething(){
 
 void Protestor::annoy(int howMuch){
     m_hitPoints -= howMuch;
-    if(m_hitPoints < 0)
+    if(m_hitPoints <= 0){
         m_leaveTheOilField = true;
+        if(howMuch==squirtDamage){
+            if(getGameID() == 'p'){
+                getWorld()->increaseScore(100);
+            }
+            else if(getGameID() == 'P'){
+                getWorld()->increaseScore(250);
+            }
+        }
+        else if(howMuch == 100)
+            getWorld()->increaseScore(500);
+        return;
+    }
     
+    m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
 }
 
+void Protestor::bribe(){
+    getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
+    
+    if(getGameID() == 'P'){
+        getWorld()->increaseScore(50);
+       // m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
+        m_tickCount = 400; 
+    }
+    else{
+        getWorld()->increaseScore(25);
+        m_leaveTheOilField = true;
+    }
+    
+}
 
 //Private Functions
 int Protestor::generateNumSquaresToMove(){
@@ -502,7 +600,7 @@ bool Protestor::withinShoutingDistanceAndFacingTunnelMan(){
         return false;
     
     int tX = getWorld()->getTunnelMan()->getX();
-    int tY = getWorld()->getTunnelMan()->getY(); 
+    int tY = getWorld()->getTunnelMan()->getY();
     
     if(getDirection() == up && tY > y)
         return true;
@@ -566,22 +664,7 @@ GraphObject::Direction Protestor::generateRandomDirection(){
         return right;
         
 }
-
-void Protestor::changeDirectionToExit(){
-    setDirection(getWorld()->getDirectionForProtestorExit(this)); 
-}
-
-
-
-/*                            RegularProtestor Class Function Implementations           */
-
-RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_PROTESTER, 10){}
-
-char RegularProtestor::getGameID() const{
-    return 'p';
-}
-
-bool RegularProtestor::canMoveTowardTunnelMan(){
+bool Protestor::canMoveTowardTunnelMan(){
     int x = getX();
     int y = getY();
     int tX = getWorld()->getTunnelMan()->getX();
@@ -593,13 +676,13 @@ bool RegularProtestor::canMoveTowardTunnelMan(){
     if(x == tX){
         if(y < tY){
             for(int i = 0; i < tY - y; i++){
-                if(getWorld()->earthAt(x, y+i) || getWorld()->boulderAt(x, y+i))
+                if(getWorld()->earthAt(x, y+i) || getWorld()->actorWillOverlapBoulder(x, y+i))
                     return false;
             }
         }
         else{
             for(int i = 0; i < y - tY - 1; i++){ //To account for if the tunnelman is digging
-                if(getWorld()->earthAt(x, y-i) || getWorld()->boulderAt(x, y-i))
+                if(getWorld()->earthAt(x, y-i) || getWorld()->actorWillOverlapBoulder(x, y-i))
                     return false;
             }
         }
@@ -607,19 +690,36 @@ bool RegularProtestor::canMoveTowardTunnelMan(){
     if(y == tY){
         if(x < tX){
             for(int i = 0; i < tX - x; i++){
-                if(getWorld()->earthAt(x+i, y) || getWorld()->boulderAt(x+i, y))
+                if(getWorld()->earthAt(x+i, y) || getWorld()->actorWillOverlapBoulder(x+i, y))
                     return false;
             }
         }
         else{
             for(int i = 0; i < x - tX - 1; i++){ //to account for if the tunnelman is digging
-                if(getWorld()->earthAt(x-i, y) || getWorld()->boulderAt(x-i, y))
+                if(getWorld()->earthAt(x-i, y) || getWorld()->actorWillOverlapBoulder(x-i, y))
                     return false;
             }
         }
     }
     return true;
 }
+
+
+void Protestor::changeDirectionToExit(){
+    setDirection(getWorld()->getDirectionToLocation(this, 60, 60));
+}
+
+
+
+/*                            RegularProtestor Class Function Implementations           */
+
+RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_PROTESTER, 5){}
+
+char RegularProtestor::getGameID() const{
+    return 'p';
+}
+
+
 
 void RegularProtestor::changeDirectionToMoveTowardTunnelMan(){
     faceTunnelMan();
@@ -658,47 +758,11 @@ char HardcoreProtestor::getGameID() const{
 }
 
 bool HardcoreProtestor::canMoveTowardTunnelMan(){
-    int x = getX();
-    int y = getY();
-    int tX = getWorld()->getTunnelMan()->getX();
-    int tY = getWorld()->getTunnelMan()->getY();
-    
-    if(x != tX && y != tY)
-        return false;
-    
-    if(x == tX){
-        if(y < tY){
-            for(int i = 0; i < tY - y; i++){
-                if(getWorld()->earthAt(x, y+i) || getWorld()->boulderAt(x, y+i))
-                    return false;
-            }
-        }
-        else{
-            for(int i = 0; i < y - tY - 1; i++){ //To account for if the tunnelman is digging
-                if(getWorld()->earthAt(x, y-i) || getWorld()->boulderAt(x, y-i))
-                    return false;
-            }
-        }
-    }
-    if(y == tY){
-        if(x < tX){
-            for(int i = 0; i < tX - x; i++){
-                if(getWorld()->earthAt(x+i, y) || getWorld()->boulderAt(x+i, y))
-                    return false;
-            }
-        }
-        else{
-            for(int i = 0; i < x - tX - 1; i++){ //to account for if the tunnelman is digging
-                if(getWorld()->earthAt(x-i, y) || getWorld()->boulderAt(x-i, y))
-                    return false;
-            }
-        }
-    }
-    return true;
+    return Protestor::canMoveTowardTunnelMan() || getWorld()->hardCoreProtestorCanMoveTowardTunnelMan(this);
 }
 
 void HardcoreProtestor::changeDirectionToMoveTowardTunnelMan(){
-    faceTunnelMan();
+    setDirection(getWorld()->getDirectionToLocation(this, getWorld()->getTunnelMan()->getX(), getWorld()->getTunnelMan()->getY())); 
 }
 
 void HardcoreProtestor::faceTunnelMan(){
@@ -724,668 +788,3 @@ void HardcoreProtestor::faceTunnelMan(){
     }
 }
 
-////GraphObject::Direction Protestor::getDirectionForMazeExit(){
-////    int maze[64][64] = {};
-////    queue<location> myQueue;
-////    
-////    myQueue.push(location(60, 60));
-////    
-////    while(!myQueue.empty()){
-////        location cur = myQueue.front();
-////        myQueue.pop();
-////        int curX = cur.x;
-////        int curY = cur.y;
-////        
-////        
-////    }
-////    
-////}
-////RegularProtestor class function implementations:
-//
-//RegularProtestor::RegularProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_PROTESTER, 60, 60, left, 1.0, 0){
-//    
-//    m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
-//    m_hitPoints = 5;
-//    m_leaveTheOilField = false;
-//    
-//    m_tickCount = 0; //Protestors start out ready to do something on their first tick
-//    m_NonRestingTicksSinceShout = 0;
-//    m_NonRestingTicksSinceTurn = 0;
-//}
-//
-//char RegularProtestor::getGameID() const{
-//    return 'p';
-//}
-//
-//bool RegularProtestor::wantsToLeave(){
-//    return m_leaveTheOilField;
-//}
-//
-//void RegularProtestor::annoy(int howMuch){
-//    if(m_leaveTheOilField)
-//        return;
-//    
-//    m_hitPoints -= howMuch;
-//    if(m_hitPoints > 0){
-//        getWorld()->playSound(SOUND_PROTESTER_ANNOYED);
-//        int stunnedTicks = fmax(50, 100 - getWorld()->getLevel() * 10);
-//        m_tickCount = stunnedTicks; //make the protestor stunned
-//    }
-//    else{
-//        //If he died because of a squirt
-//        if(howMuch == 2)
-//            getWorld()->increaseScore(100);
-//        //Points allocated for dying by means of a boulder occur in the boulder class
-//        
-//        //changeAnnoyableStatus();
-//        m_leaveTheOilField = true;
-//        getWorld()->playSound(SOUND_PROTESTER_GIVE_UP);
-//        m_tickCount = 0;
-//    } //Make sure points are given in the other classes
-//}
-//
-//void RegularProtestor::bribe(){
-//    getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
-//    getWorld()->increaseScore(25);
-//    m_leaveTheOilField = true;
-//    m_tickCount = 0;
-//}
-//
-//void RegularProtestor::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//    
-//    
-//    if(m_tickCount > 0){
-//        m_tickCount--;
-//        return;
-//    }
-//    
-//    //int ticksToWait = fmax(0, 3 - getWorld()->getLevel() / 4);
-//    int ticksToWait = 8;
-//    m_tickCount = ticksToWait;
-//    //At this point the protestor passed these checks and is allowed to do something:
-//    
-//    if(m_leaveTheOilField){
-////        if(getX() == 60 || getY() == 60)
-////            setLiveStatus(false);
-////        else{
-////            changeDirectionInOrderToExit();
-////            move();
-////            m_NonRestingTicksSinceShout = -1;
-////            m_NonRestingTicksSinceTurn = -1;
-////        }
-//        setLiveStatus(false);
-//        return;
-//    }
-//    
-//    if(withinShoutingDistance()){
-//        if(m_NonRestingTicksSinceShout >= 15){
-//            getWorld()->getTunnelMan()->annoy(2);
-//            getWorld()->playSound(SOUND_PROTESTER_YELL);
-//            m_NonRestingTicksSinceShout = 0;
-//        }
-//        else{
-//            m_NonRestingTicksSinceShout++;
-//        }
-//        m_NonRestingTicksSinceTurn++;
-//        return;
-//    }
-//    
-//    if(canMoveTowardTunnelMan()){
-//        Direction d = getDirection();
-//
-//        faceTunnelMan();
-//
-//        if(justTurned90(d, getDirection()))
-//            m_NonRestingTicksSinceTurn = -1;
-//
-//
-//
-//        m_numSquaresToMoveInCurrentDirection = 0;
-//        move();
-//        
-//        m_NonRestingTicksSinceShout++;
-//        m_NonRestingTicksSinceTurn++;
-//        return;
-//    }
-//    
-//    //At this point the protestor is not near and does not see the TunnelMan
-//    
-//    m_numSquaresToMoveInCurrentDirection--;
-//    if(m_numSquaresToMoveInCurrentDirection <= 0){
-//        Direction d;
-//        Direction d2 = getDirection();
-//        do{
-//            d = generateRandomDirection();
-//            setDirection(d);
-//        }while(!isViableDirection(d));
-//
-//        if(justTurned90(d2, d))
-//            m_NonRestingTicksSinceTurn = -1;
-//
-//        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
-//    }
-//
-//
-//    if(m_NonRestingTicksSinceTurn >= 200 && atIntersection()){
-//        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
-//
-//        m_NonRestingTicksSinceTurn = -1;
-//    }
-//
-//    if(isViableDirection(getDirection()))
-//        move();
-//    else
-//        m_numSquaresToMoveInCurrentDirection = 0;
-//
-//    m_NonRestingTicksSinceShout++;
-//    m_NonRestingTicksSinceTurn++;
-//    return;
-//}
-//
-
-//
-//bool Protestor::justTurned90(Direction d1, Direction d2){
-//    if(d1 == up || d1 == down){
-//        if(d2 == right || d2 == left)
-//            return true;
-//        else
-//            return false;
-//    }
-//    else{
-//        if(d2 == up || d2 == down)
-//            return true;
-//        else
-//            return false;
-//    }
-//}
-//
-//
-//bool Protestor::atIntersection(){
-//    Direction d = getDirection();
-//    if(d == up || d == down){
-//        if(!isViableDirection(left) && !isViableDirection(right))
-//            return false;
-//        else{
-//            if(isViableDirection(left) && isViableDirection(right)){
-//                int i = rand() % 2;
-//                if(i == 0)
-//                    setDirection(left);
-//                else
-//                    setDirection(right);
-//            }
-//            else if(isViableDirection(left)){
-//                setDirection(left);
-//            }
-//            else if(isViableDirection(right))
-//                setDirection(right);
-//            return true;
-//        }
-//    }
-//    else{
-//        if(!isViableDirection(up) && !isViableDirection(down)){
-//            return false;
-//        }
-//        else{
-//            if(isViableDirection(up) && isViableDirection(down)){
-//                int i = rand() % 2;
-//                if(i == 0)
-//                    setDirection(up);
-//                else
-//                    setDirection(down);
-//            }
-//            else if(isViableDirection(up))
-//                setDirection(up);
-//            else if(isViableDirection(down))
-//                setDirection(down);
-//            return true;
-//        }
-//    }
-//}
-//
-//bool Protestor::isViableDirection(Direction d){
-//    return getWorld()->willHitBoulderEdgeOrEarth(getX(), getY(), d);
-//}
-//
-//GraphObject::Direction Protestor::generateRandomDirection(){
-//    int i = rand() % 4;
-//    if(i == 0)
-//        return up;
-//    if(i == 1)
-//        return down;
-//    if(i == 2)
-//        return left;
-//    else
-//        return right;
-//
-//}
-//void Protestor::faceTunnelMan(){
-//    int x = getX();
-//    int y = getY();
-//
-//    int tX = getWorld()->getPlayerX();
-//    int tY = getWorld()->getPlayerY();
-//
-//    assert(tX == x || tY == y);
-//
-//    if(tX > x){
-//        setDirection(right);
-//    }
-//    if(tX < x){
-//        setDirection(left);
-//    }
-//    if(tY < y){
-//        setDirection(down);
-//    }
-//    if(tY > y){
-//        setDirection(up);
-//    }
-//}
-//
-////void RegularProtestor::changeDirectionInOrderToExit(){
-////    char maze[64][64];
-////    getWorld()->getMazeForExit(maze);
-////
-////    if(l)
-////
-////
-////}
-//
-
-//
-//bool Protestor::canMoveTowardTunnelMan(){
-//    int x = getX();
-//    int y = getY();
-//    int tX = getWorld()->getPlayerX();
-//    int tY = getWorld()->getPlayerY();
-//
-//    if(x != tX && y != tY)
-//        return false;
-//
-//    if(x == tX){
-//        if(y < tY){
-//            for(int i = 0; i < tY - y; i++){
-//                if(getWorld()->earthAt(x, y+i) || getWorld()->actorAt(x, y+i, 'B'))
-//                    return false;
-//            }
-//        }
-//        else{
-//            for(int i = 0; i < y - tY - 1; i++){ //To account for if the tunnelman is digging
-//                if(getWorld()->earthAt(x, y-i) || getWorld()->actorAt(x, y-i, 'B'))
-//                    return false;
-//            }
-//        }
-//    }
-//    if(y == tY){
-//        if(x < tX){
-//            for(int i = 0; i < tX - x; i++){
-//                if(getWorld()->earthAt(x+i, y) || getWorld()->actorAt(x+i, y, 'B'))
-//                    return false;
-//            }
-//        }
-//        else{
-//            for(int i = 0; i < x - tX - 1; i++){ //to account for if the tunnelman is digging
-//                if(getWorld()->earthAt(x-i, y) || getWorld()->actorAt(x-i, y, 'B'))
-//                    return false;
-//            }
-//        }
-//    }
-//    return true;
-//}
-//
-////HardcoreProtestor class function implementations
-//
-//HardCoreProtestor::HardCoreProtestor(StudentWorld* myWorld) : Protestor(myWorld, TID_HARD_CORE_PROTESTER, 60, 60, left, 1.0, 0){
-//    
-//    m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
-//    m_leaveTheOilField = false;
-//    m_hitPoints = 20;
-//    
-//    m_tickCount = 0;
-//    m_NonRestingTicksSinceShout = 0;
-//    m_NonRestingTicksSinceTurn = 0;
-//}
-//
-//char HardCoreProtestor::getGameID() const{
-//    return 'P'; 
-//}
-//
-//void HardCoreProtestor::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//    
-//    if(m_tickCount > 0){ //In a rest state
-//        m_tickCount--;
-//        return;
-//    }
-//    
-//    //int ticksToWait = fmax(0, 3 - getWorld()->getLevel() / 4);
-//    int ticksToWait = 8;
-//    m_tickCount = ticksToWait; 
-//    
-//    if(m_leaveTheOilField){ //FIX THIS
-//        setLiveStatus(false);
-//        return ;
-//    }
-//    
-//    if(withinShoutingDistance()){
-//        if(m_NonRestingTicksSinceShout >= 15){
-//            getWorld()->getTunnelMan()->annoy(2);
-//            getWorld()->playSound(SOUND_PROTESTER_YELL);
-//            m_NonRestingTicksSinceShout = 0;
-//        }
-//        else{
-//            m_NonRestingTicksSinceShout++;
-//        }
-//        m_NonRestingTicksSinceTurn++;
-//        return;
-//    }
-//    
-//    if(canMoveTowardTunnelMan()){
-//        Direction d = getDirection();
-//        
-//        faceTunnelMan();
-//        
-//        if(justTurned90(d, getDirection()))
-//            m_NonRestingTicksSinceTurn = -1;
-//        
-//        
-//        
-//        m_numSquaresToMoveInCurrentDirection = 0;
-//        move();
-//        
-//        m_NonRestingTicksSinceShout++;
-//        m_NonRestingTicksSinceTurn++;
-//        return;
-//    }
-//    
-//    //At this point the protestor is not near and does not see the TunnelMan
-//    
-//    m_numSquaresToMoveInCurrentDirection--;
-//    if(m_numSquaresToMoveInCurrentDirection <= 0){
-//        Direction d;
-//        Direction d2 = getDirection();
-//        do{
-//            d = generateRandomDirection();
-//            setDirection(d);
-//        }while(!isViableDirection(d));
-//        
-//        if(justTurned90(d2, d))
-//            m_NonRestingTicksSinceTurn = -1;
-//        
-//        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
-//    }
-//        
-//    
-//    if(m_NonRestingTicksSinceTurn >= 200 && atIntersection()){
-//        m_numSquaresToMoveInCurrentDirection = generateNumSquaresToMove();
-//        
-//        m_NonRestingTicksSinceTurn = -1;
-//    }
-//    
-//    if(isViableDirection(getDirection()))
-//        move();
-//    else
-//        m_numSquaresToMoveInCurrentDirection = 0;
-//    
-//    m_NonRestingTicksSinceShout++;
-//    m_NonRestingTicksSinceTurn++;
-//    return;
-//    
-//}
-//
-//void HardCoreProtestor::annoy(int howMuch){
-//    if(m_leaveTheOilField)
-//        return;
-//    
-//    m_hitPoints -= howMuch;
-//    if(m_hitPoints > 0){
-//        getWorld()->playSound(SOUND_PROTESTER_ANNOYED);
-//        int stunnedTicks = fmax(50, 100 - getWorld()->getLevel() * 10);
-//        m_tickCount = stunnedTicks; //make the protestor stunned
-//    }
-//    else{
-//        //If he died because of a squirt
-//        if(howMuch == 2)
-//            getWorld()->increaseScore(250);
-//        //Points allocated for dying by means of a boulder occur in the boulder class
-//        
-//        changeAnnoyableStatus();
-//        m_leaveTheOilField = true;
-//        getWorld()->playSound(SOUND_PROTESTER_GIVE_UP);
-//        m_tickCount = 0;
-//    }
-//}
-//
-//void HardCoreProtestor::bribe(){
-//    getWorld()->playSound(SOUND_PROTESTER_FOUND_GOLD);
-//    getWorld()->increaseScore(50);
-//    m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
-//}
-//
-//
-////Squirt class function implementations
-//Squirt::Squirt(StudentWorld* myWorld, TunnelMan* owner, int startX, int startY) : Actor(myWorld, TID_WATER_SPURT, startX, startY, owner->getDirection(), 1, 1.0){
-//    m_travelDistance = squirtInitialTravelDistance;
-//    setVisible(true); //All squirt objects start off as visible
-//}
-//
-//void Squirt::doSomething(){
-//    if(getWorld()->annoyProtestorsWithinRadius(getX(), getY(), 3, 2)){
-//        setLiveStatus(false);
-//        return;
-//    }
-//    if(m_travelDistance == 0){
-//        setLiveStatus(false);
-//        return;
-//    }
-//
-//    if(!canMove(getDirection())){
-//        setLiveStatus(false);
-//        return;
-//    }
-//
-//    Direction d = getDirection();
-//    int x = getX();
-//    int y = getY();
-//    if(d == up)
-//        moveTo(x, y+1);
-//    if(d == down)
-//        moveTo(x, y-1);
-//    if(d == right)
-//        moveTo(x+1, y);
-//    if(d == left)
-//        moveTo(x-1, y);
-//    m_travelDistance--;
-//}
-//bool Squirt::canMove(Direction d) const{
-//    int x = getX();
-//    int y = getY();
-//
-//    if(d == right){
-//        if(x >= VIEW_WIDTH - actorSize)
-//            return false;
-//        if(boulderAt(x + 1, getY()))
-//            return false;
-//        
-//        if(getWorld()->earthAt(x+1, y))
-//            return false;
-//        
-//        return true;
-//    }
-//    if(d == left){
-//        if(x <= 0)
-//            return false;
-//        if(boulderAt(x - 1, y))
-//            return false;
-//        
-//        if(getWorld()->earthAt(x-1, y))
-//            return false;
-//        
-//        return true;
-//    }
-//    if(d == up){
-//        if(y >= VIEW_HEIGHT - actorSize)
-//            return false;
-//        if(boulderAt(x, y + 1))
-//            return false;
-//        
-//        if(getWorld()->earthAt(x, y+1))
-//            return false;
-//        
-//        return true;
-//    }
-//    if(d == down){
-//        if(getY() <= 0)
-//            return false;
-//        if(boulderAt(getX(), getY() - 1))
-//            return false;
-//
-//        if(getWorld()->earthAt(x, y-1))
-//            return false;
-//        
-//        return true;
-//    }
-//
-//    return false; //This will never be hit
-//}
-//
-//bool Squirt::boulderAt(int x, int y) const{
-//    for(int i = 0; i < actorSize; i++){
-//        for(int j = 0; j < actorSize; j++){
-//            if(getWorld()->inField(x + j, y + i)){
-//                if(getWorld()->findActor(x + j, y + i, 'B') != nullptr){
-//                    return true;
-//                }
-//            }
-//        }
-//    }
-//
-//    return false;
-//}
-//
-//char Squirt::getGameID() const{
-//    return 'S';
-//}
-//
-////Waterpool Class
-//Waterpool::Waterpool(StudentWorld* myWorld, int startX, int startY) : Goodie(myWorld, TID_WATER_POOL, startX, startY){
-//    
-//    
-//    m_tickCount = fmax(100, 300 - 10*getWorld()->getLevel());
-//    setVisible(true);
-//    
-//}
-//
-//char Waterpool::getGameID() const{
-//    return 'W';
-//}
-//
-//void Waterpool::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//    
-//    if(m_tickCount <= 0){
-//        setLiveStatus(false);
-//        return;
-//    }
-//    
-//    if(getWorld()->tunnelManWithinRadius(getX(), getY(), 3)){
-//        setLiveStatus(false);
-//        getWorld()->playSound(SOUND_GOT_GOODIE);
-//        getWorld()->getTunnelMan()->incrementNumSquirts();
-//    }
-//    
-//    m_tickCount--;
-//}
-//
-////SonarKit Class Function Implementations
-//SonarKit::SonarKit(StudentWorld* myWorld, int startX, int startY) : Goodie(myWorld, TID_SONAR, startX, startY){
-//
-//    m_tickCount = fmax(100, 300 - getWorld()->getLevel()*10);
-//    setVisible(true);
-//}
-//
-//void SonarKit::doSomething(){
-//    
-//    if(!getLiveStatus())
-//        return;
-//    
-//    if(m_tickCount <= 0){
-//        setLiveStatus(false);
-//        return;
-//    }
-//    
-//    if(getWorld()->tunnelManWithinRadius(getX(), getY(), 3)){
-//        setLiveStatus(false);
-//        getWorld()->playSound(SOUND_GOT_GOODIE);
-//        getWorld()->getTunnelMan()->incrementNumSonarCharges();
-//    }
-//    
-//    m_tickCount--;
-//}
-//
-//char SonarKit::getGameID() const{
-//    return 'K';
-//}
-//
-
-//
-//
-////Gold Class Function Implementations
-//
-//Gold::Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp, bool permanent, int ticksToWait) : Goodie(myWorld, TID_GOLD, startX, startY){
-//    
-//    m_tunnelManCanPickUp = tunnelManCanPickUp;
-//    m_permanent = permanent;
-//    m_tickCount = ticksToWait;
-//    
-//    if(!m_tunnelManCanPickUp)
-//        setVisible(true);
-//    else
-//        setVisible(false);
-//}
-//
-//char Gold::getGameID() const{
-//    return 'G';
-//}
-//
-//void Gold::doSomething(){
-//    if(!getLiveStatus())
-//        return;
-//    
-//    if(!m_permanent){
-//        if(m_tickCount <= 0){
-//            setLiveStatus(false);
-//            return;
-//        }
-//        else
-//            m_tickCount--;
-//    }
-//
-//    if(m_tunnelManCanPickUp){
-//        if(!isVisible() && getWorld()->tunnelManWithinRadius(getX(), getY(), 4)){
-//            setVisible(true);
-//            return;
-//        }
-//        
-//        if(getWorld()->tunnelManWithinRadius(getX(), getY(), 3)){
-//            setLiveStatus(false);
-//            getWorld()->playSound(SOUND_GOT_GOODIE);
-//            getWorld()->getTunnelMan()->incrementNumNuggets(); //This increases the score by ten
-//            return;
-//        }
-//        
-//        
-//    }
-//    else{
-//        Actor* p = getWorld()->findActorsWithinRadius(getX(), getY(), 3, 'p');
-//        if(p == nullptr)
-//            p = getWorld()->findActorsWithinRadius(getX(), getY(), 3, 'P');
-//        if(p != nullptr){ //Some type of protestor was found within the radius
-//            p->bribe(); //Bribe the protestor
-//        }
-//    }
-//}
-//

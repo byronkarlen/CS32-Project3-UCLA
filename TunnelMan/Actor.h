@@ -4,7 +4,7 @@
 #include "GraphObject.h"
 
 //Constants:
-const int squirtTravelDistance = 4; 
+const int squirtTravelDistance = 4;
 const int ticksBeforeBoulderFalls = 30;
 const int squirtDamage = 2; 
 
@@ -73,7 +73,7 @@ public:
     void incrementNumSquirts();
     int getNumSquirts();
     
-    int getHitPoints(); 
+    int getHitPoints();
 
     virtual ~TunnelMan(){}
     
@@ -103,12 +103,12 @@ private:
 
 class Goodie : public Actor{
 public:
-    Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, bool tunnelManCanPickUp, bool temp, int tickCount = -1, int ticksToWait = -1);
+    Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, bool tunnelManCanPickUp, bool temp);
     
     virtual void doSomething();
     
     virtual void doSomethingToTunnelMan() = 0;
-    virtual void doSomethingToProtestor() = 0;
+    virtual void doSomethingToProtestor(){}
     
     virtual ~Goodie(){}
     
@@ -123,16 +123,38 @@ class Barrel : public Goodie{
 public:
     Barrel(StudentWorld* myWorld, int startX, int startY);
     virtual char getGameID() const;
-    virtual void doSomethingToProtestor(){}
-    virtual void doSomethingToTunnelMan(); 
+    virtual void doSomethingToTunnelMan();
 };
+
+class WaterPool : public Goodie{
+public:
+    WaterPool(StudentWorld* myWorld, int startX, int startY);
+    virtual char getGameID() const;
+    virtual void doSomethingToTunnelMan();
+};
+
+class SonarKit : public Goodie{
+public:
+    SonarKit(StudentWorld* myWorld);
+    virtual char getGameID() const;
+    virtual void doSomethingToTunnelMan();
+};
+
+class Gold: public Goodie{
+public:
+    Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp);
+    virtual char getGameID() const;
+    virtual void doSomethingToTunnelMan();
+    virtual void doSomethingToProtestor();
+};
+
 
 class Squirt : public Actor{
 public:
     Squirt(StudentWorld* myWorld, int startX, int startY);
     virtual char getGameID() const;
     
-    virtual void doSomething(); 
+    virtual void doSomething();
     
 private:
     int m_travelDistance;
@@ -143,12 +165,13 @@ class Protestor : public Actor{
 public:
     Protestor(StudentWorld* myWorld, int imageID, int hitPoints);
     
-    virtual void doSomething(); 
+    virtual void doSomething();
     
-    virtual bool canMoveTowardTunnelMan() = 0;
+    virtual void bribe();
+    virtual bool canMoveTowardTunnelMan();
     virtual void changeDirectionToMoveTowardTunnelMan() = 0;
     
-    virtual void annoy(int howMuch); 
+    virtual void annoy(int howMuch);
     
     virtual ~Protestor(){}
     
@@ -183,8 +206,8 @@ class RegularProtestor : public Protestor{
 public:
     RegularProtestor(StudentWorld* myWorld);
     virtual char getGameID() const;
-    virtual bool canMoveTowardTunnelMan();
-    virtual void changeDirectionToMoveTowardTunnelMan(); 
+    virtual void changeDirectionToMoveTowardTunnelMan();
+    
     
 private:
     //Changes direction so that the protestor faces the tunnelman
@@ -197,71 +220,11 @@ public:
     virtual char getGameID() const;
     virtual bool canMoveTowardTunnelMan();
     virtual void changeDirectionToMoveTowardTunnelMan();
+
     
 private:
     void faceTunnelMan();
 };
 
-
-
-
-//
-
-//
-//
-//
-////Waterpool Class:
-//class Waterpool : public Goodie{
-//public:
-//    Waterpool(StudentWorld* myWorld, int startX, int startY);
-//    virtual char getGameID() const;
-//    virtual void doSomething();
-//private:
-//    int m_tickCount;
-//};
-//
-//class SonarKit : public Goodie{
-//public:
-//    SonarKit(StudentWorld* myWorld, int startX, int startY);
-//    void doSomething();
-//    char getGameID() const;
-//private:
-//    int m_tickCount;
-//
-//};
-//
-//
-//class Gold : public Goodie{
-//public:
-//    Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp, bool m_permanent, int ticksToWait);
-//    void doSomething();
-//    char getGameID() const;
-//    
-//private:
-//    int m_tickCount;
-//    bool m_tunnelManCanPickUp;
-//    bool m_permanent;
-//};
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-////class HardcoreProtestor : public Protestor{
-////public:
-////    HardcoreProtestor(StudentWorld* myWorld);
-////    void doSomething();
-////    char getGameID() const;
-////
-////private:
-////
-////};
-//
-//
 #endif // ACTOR_H_
 

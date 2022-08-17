@@ -14,9 +14,14 @@ const int actorSize = 4;
 class Actor;
 class Earth;
 class TunnelMan;
+class Gold;
+class WaterPool;
+class SonarKit;
+class Barrel;
 class Boulder;
 class Squirt;
 class RegularProtestor;
+class HardCoreProtestor;
 
 class StudentWorld : public GameWorld
 {
@@ -56,9 +61,11 @@ public:
     //returns whether there are earth objects within a given location 4x4 location specfied by the bottom left corner. If the location is not valid, it returns false anyways
     bool earthAt(int x, int y) const;
     
-    bool boulderAt(int x, int y) const; 
+    //returns whether an actor located at the given location will overlap with a boulder
+    bool actorWillOverlapBoulder(int x, int y) const;
     
-    
+    //returns whether there is a boulder object within a radius of 3 of the given location
+    bool boulderWithinRadius3(int x, int y) const;
     
     //annoys all active protestors present within the given radius
     bool killProtestorsWithinRadius(int x, int y, int radius);
@@ -72,7 +79,8 @@ public:
     //bribes a single protestor present within the radius
     void bribeProtestor(int x, int y, int radius);
     
-    GraphObject::Direction getDirectionForProtestorExit(Actor* p); 
+    GraphObject::Direction getDirectionToLocation(Actor* p, int x, int y);
+    bool hardCoreProtestorCanMoveTowardTunnelMan(Actor* p); 
     
     bool willHitBoulderOrEdge(int x, int y, GraphObject::Direction d);
     bool willHitBoulderEdgeOrEarth(int x, int y, GraphObject::Direction d);
@@ -84,10 +92,6 @@ public:
     
     //returns whether an actor located at the given coordinate would be entirely within the game's playing field
     bool actorWouldBeWithinField(int x, int y) const;
-
-    
-
-    
     
     
     
@@ -102,6 +106,7 @@ private:
     int m_targetNumOfProtestors;
     int m_numProtestors;
     
+    
     int m_maze[VIEW_HEIGHT][VIEW_WIDTH];
     struct mazeLocation{
         int x;
@@ -110,23 +115,23 @@ private:
             x = a;
             y = b;
         }
-    }; 
+    };
     
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
     void populateFieldWithBarrels();
-//    void populateFieldWithNuggets();
+    void populateFieldWithNuggets();
     
     bool thereAreObjectsTooClose(int x, int y);
     bool playerCompletedLevel();
     
-    double distanceApart(int x, int y, int x2, int y2);
+    double distanceApart(int x, int y, int x2, int y2) const;
     bool nearTunnel(int x, int y) const;
     void updateDisplayText();
     std::string formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score);
 
-
-
+    bool boulderAt(int x, int y) const;
+    
 };
 
 #endif // STUDENTWORLD_H_
