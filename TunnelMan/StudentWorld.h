@@ -14,14 +14,27 @@ const int actorSize = 4;
 class Actor;
 class Earth;
 class TunnelMan;
+class Boulder;
+class Squirt;
+class Goodie;
 class Gold;
 class WaterPool;
 class SonarKit;
 class Barrel;
-class Boulder;
-class Squirt;
+class Protestor;
 class RegularProtestor;
 class HardCoreProtestor;
+
+//This struct allows for a queue-based maze searching algorithm which helps to dictate how protestors move in the field
+struct mazeLocation{
+    int x;
+    int y;
+    mazeLocation(int a, int b){
+        x = a;
+        y = b;
+    }
+};
+
 
 class StudentWorld : public GameWorld
 {
@@ -49,9 +62,6 @@ public:
     //Returns a pointer to the TunnelMan
     TunnelMan* getTunnelMan() const;
     
-    //Returns a vector of all the actors with the given characterID within the given radius
-    std::vector<Actor*> findActorsWithinRadius(int x, int y, int radius, char charID);
-    
     //Returns a vector of all the protestors within the given radius
     std::vector<Actor*> findProtestorsWithinRadius(int x, int y, int radius);
     
@@ -61,12 +71,21 @@ public:
     //returns whether there are earth objects within a given location 4x4 location specfied by the bottom left corner. If the location is not valid, it returns false anyways
     bool earthAt(int x, int y) const;
     
-    //returns whether an actor located at the given location will overlap with a boulder
+    //returns whether any part of an actor located at the given location will overlap with any part of a boulder
     bool actorWillOverlapBoulder(int x, int y) const;
     
     //returns whether there is a boulder object within a radius of 3 of the given location
     bool boulderWithinRadius3(int x, int y) const;
     
+    //Returns whether any part of an actor would hit a boulder or the edge if it moved one square in the direction d
+    bool willHitBoulderOrEdge(int x, int y, GraphObject::Direction d);
+    //Returns whether any part of an actor would hit a boulder, edge or earth if it moved one square in the direction d
+    bool willHitBoulderEdgeOrEarth(int x, int y, GraphObject::Direction d);
+    
+    //returns whether an actor located at the given coordinate would be entirely within the game's playing field
+    bool actorWouldBeWithinField(int x, int y) const;
+    
+
     //annoys all active protestors present within the given radius
     bool killProtestorsWithinRadius(int x, int y, int radius);
     
@@ -79,19 +98,13 @@ public:
     //bribes a single protestor present within the radius
     void bribeProtestor(int x, int y, int radius);
     
+    //Returns the best direction for a character to move in order to get to a certain point in the grid (assuming one can't move into earth or a boulder)
     GraphObject::Direction getDirectionToLocation(Actor* p, int x, int y);
-    bool hardCoreProtestorCanMoveTowardTunnelMan(Actor* p); 
     
-    bool willHitBoulderOrEdge(int x, int y, GraphObject::Direction d);
-    bool willHitBoulderEdgeOrEarth(int x, int y, GraphObject::Direction d);
-
+    //returns whether an actor is 'x' moves from the TunnelMan (assuming one can't move into earth or a boulder)
+    bool isXMovesAwayFromTunnelMan(Actor* p, int x);
     
 
-    //returns whether a given coordinate is located within the game's playing field
-    bool inField(int x, int y) const;
-    
-    //returns whether an actor located at the given coordinate would be entirely within the game's playing field
-    bool actorWouldBeWithinField(int x, int y) const;
     
     
     
@@ -103,19 +116,7 @@ private:
     
     int m_minTicksBetweenProtestors;
     int m_ticksSinceLastProtestorAdded;
-    int m_targetNumOfProtestors;
     int m_numProtestors;
-    
-    
-    int m_maze[VIEW_HEIGHT][VIEW_WIDTH];
-    struct mazeLocation{
-        int x;
-        int y;
-        mazeLocation(int a, int b){
-            x = a;
-            y = b;
-        }
-    };
     
     void populateFieldWithEarth();
     void populateFieldWithBoulders();
@@ -130,7 +131,10 @@ private:
     void updateDisplayText();
     std::string formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score);
 
+    //returns whether there is any part of a boulder present at the given location
     bool boulderAt(int x, int y) const;
+    //returns whether a given coordinate is located within the game's playing field
+    bool inField(int x, int y) const;
     
 };
 

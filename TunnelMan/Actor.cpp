@@ -73,14 +73,11 @@ void TunnelMan::doSomething(){
     int y = getY();
     StudentWorld* myWorld = getWorld();
     
-    bool earthNeedsToBeRemoved = false;
     if(myWorld->earthAt(x, y)){
         myWorld->removeEarth(x, y);
         myWorld->playSound(SOUND_DIG);
-        earthNeedsToBeRemoved = true;
-    }
-    if(earthNeedsToBeRemoved)
         return;
+    }
     
     
     int ch;
@@ -239,11 +236,13 @@ void Boulder::doSomething(){
         if(boulderCanFall()){
             state = 1; //Waiting state
             ticksElapsed++;
+            return;
         }
     }
 
     if(state == 1){ //Waiting state
-        if(ticksElapsed >= ticksBeforeBoulderFalls){ //check if this should be > or >=
+        int ticksBeforeBoulderFalls = 30; 
+        if(ticksElapsed >= ticksBeforeBoulderFalls){
             state = 2; //Falling state
             getWorld()->playSound(SOUND_FALLING_ROCK);
             ticksElapsed = -1;
@@ -251,12 +250,13 @@ void Boulder::doSomething(){
         else{
             ticksElapsed++;
         }
+        return;
     }
     if(state == 2){//Falling state
         if(boulderCanFall()){
             getWorld()->playSound(SOUND_FALLING_ROCK);
             smushCharacters();
-            moveTo(getX(), getY() - 1);
+            move();
         }
         else{
             setLiveStatus(false); //Set the boulder to dead
@@ -280,28 +280,29 @@ bool Boulder::boulderCanFall() const{
 /*                      Goodie Class Function Implementations:                  */
 
 Goodie::Goodie(StudentWorld* myWorld, int imageID, int startX, int startY, bool tunnelManCanPickUp, bool temp) : Actor(myWorld, imageID, startX, startY, right, 1.0, 2){
-    
     //Goodies start out as invisible
     m_tunnelManCanPickUp = tunnelManCanPickUp;
     
     m_temporary = temp;
     
     if(m_temporary)
-        m_ticksToWait = 500;
-        //m_ticksToWait = fmax(100, 300 - 10*getWorld()->getLevel());
+        //TODO: fix this
+        m_tickLifeTime = fmax(100, 300 - 10*getWorld()->getLevel());
     else
-        m_ticksToWait = -1;
+        m_tickLifeTime = -1;
     m_tickCount = 0;
+}
+
+void Goodie::setTickLifeTime(int tickLife){
+    m_tickLifeTime = tickLife;
 }
 
 void Goodie::doSomething(){
     if(!getLiveStatus())
         return;
-    if(!m_tunnelManCanPickUp)
-        setVisible(true);
     
     if(m_temporary){
-        if(m_tickCount >= m_ticksToWait){
+        if(m_tickCount >= m_tickLifeTime){
             setLiveStatus(false);
             return;
         }
@@ -390,8 +391,10 @@ void SonarKit::doSomethingToTunnelMan(){
 
 Gold::Gold(StudentWorld* myWorld, int startX, int startY, bool tunnelManCanPickUp) : Goodie(myWorld, TID_GOLD, startX, startY, tunnelManCanPickUp, !tunnelManCanPickUp){
     
-    if(!tunnelManCanPickUp)
+    if(!tunnelManCanPickUp){
         setVisible(true);
+        setTickLifeTime(100);
+    }
 }
 
 char Gold::getGameID() const{
@@ -412,9 +415,10 @@ void Gold::doSomethingToProtestor(){
 }
 
 
+
 /*                          Squirt Class Implementation                                 */
 Squirt::Squirt(StudentWorld* myWorld, int startX, int startY) : Actor(myWorld, TID_WATER_SPURT, startX, startY, myWorld->getTunnelMan()->getDirection(), 1.0, 1){
-    m_travelDistance = squirtTravelDistance;
+    m_travelDistance = 4; //All squirts start out with an initial travel distance of 4
     setVisible(true);
 }
 
@@ -474,8 +478,8 @@ void Protestor::doSomething(){
         return;
     }
     
-    int ticksToWaitBetweenMoves = 8;
-    //int ticksToWaitBetweenMoves = fmax(0, 3 - (getWorld()->getLevel()/4));
+    //TODO: Fix this
+    int ticksToWaitBetweenMoves = fmax(0, 3 - (getWorld()->getLevel()/4));
     if(m_tickCount < ticksToWaitBetweenMoves){
         m_tickCount++;
         return;
@@ -552,10 +556,14 @@ void Protestor::doSomething(){
 }
 
 void Protestor::annoy(int howMuch){
+    const int squirtDamage = 2;
+    const int boulderDamage = 100;
+    
     m_hitPoints -= howMuch;
     if(m_hitPoints <= 0){
+        getWorld()->playSound(SOUND_PROTESTER_GIVE_UP);
         m_leaveTheOilField = true;
-        if(howMuch==squirtDamage){
+        if(howMuch == squirtDamage){
             if(getGameID() == 'p'){
                 getWorld()->increaseScore(100);
             }
@@ -563,12 +571,13 @@ void Protestor::annoy(int howMuch){
                 getWorld()->increaseScore(250);
             }
         }
-        else if(howMuch == 100)
+        else if(howMuch == boulderDamage)
             getWorld()->increaseScore(500);
         return;
     }
     
-    m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
+    //TODO: Fix
+    m_tickCount = fmax(0, 3 - (getWorld()->getLevel()/4)) - fmax(50, 100 - getWorld()->getLevel()*10);
 }
 
 void Protestor::bribe(){
@@ -576,8 +585,9 @@ void Protestor::bribe(){
     
     if(getGameID() == 'P'){
         getWorld()->increaseScore(50);
-       // m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
-        m_tickCount = 400; 
+       
+        //TODO: Fix
+        m_tickCount = fmax(50, 100 - getWorld()->getLevel()*10);
     }
     else{
         getWorld()->increaseScore(25);
@@ -732,8 +742,6 @@ void RegularProtestor::faceTunnelMan(){
     int tX = getWorld()->getTunnelMan()->getX();
     int tY = getWorld()->getTunnelMan()->getY();
     
-    assert(tX == x || tY == y);
-    
     if(tX > x){
         setDirection(right);
     }
@@ -758,33 +766,13 @@ char HardcoreProtestor::getGameID() const{
 }
 
 bool HardcoreProtestor::canMoveTowardTunnelMan(){
-    return Protestor::canMoveTowardTunnelMan() || getWorld()->hardCoreProtestorCanMoveTowardTunnelMan(this);
+    int maxMovesToTunnelMan = 16 + getWorld()->getLevel()*2;
+    return Protestor::canMoveTowardTunnelMan() || getWorld()->isXMovesAwayFromTunnelMan(this, maxMovesToTunnelMan);
 }
 
 void HardcoreProtestor::changeDirectionToMoveTowardTunnelMan(){
     setDirection(getWorld()->getDirectionToLocation(this, getWorld()->getTunnelMan()->getX(), getWorld()->getTunnelMan()->getY())); 
 }
 
-void HardcoreProtestor::faceTunnelMan(){
-    int x = getX();
-    int y = getY();
-    
-    int tX = getWorld()->getTunnelMan()->getX();
-    int tY = getWorld()->getTunnelMan()->getY();
-    
-    assert(tX == x || tY == y);
-    
-    if(tX > x){
-        setDirection(right);
-    }
-    if(tX < x){
-        setDirection(left);
-    }
-    if(tY < y){
-        setDirection(down);
-    }
-    if(tY > y){
-        setDirection(up);
-    }
-}
+
 

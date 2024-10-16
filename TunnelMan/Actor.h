@@ -3,11 +3,6 @@
 
 #include "GraphObject.h"
 
-//Constants:
-const int squirtTravelDistance = 4;
-const int ticksBeforeBoulderFalls = 30;
-const int squirtDamage = 2; 
-
 class StudentWorld;
 
 //A base class for all the games Objects
@@ -110,12 +105,13 @@ public:
     virtual void doSomethingToTunnelMan() = 0;
     virtual void doSomethingToProtestor(){}
     
+    void setTickLifeTime(int tickLifeTime);
     virtual ~Goodie(){}
     
 private:
     bool m_tunnelManCanPickUp;
     bool m_temporary;
-    int m_ticksToWait;
+    int m_tickLifeTime;
     int m_tickCount;
 };
 
@@ -223,7 +219,6 @@ public:
 
     
 private:
-    void faceTunnelMan();
 };
 
 #endif // ACTOR_H_

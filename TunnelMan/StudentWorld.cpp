@@ -2,7 +2,6 @@
 #include "Actor.h"
 #include <cmath>
 #include <queue>
-//#include <cstdlib>
 
 using namespace std;
 
@@ -18,13 +17,11 @@ int StudentWorld::init()
     populateFieldWithBarrels();
     populateFieldWithNuggets();
     
-
-
+    
     //Set appropriate tick counts
     m_numProtestors = 0;
     m_ticksSinceLastProtestorAdded = 1000; //So that a protestor will be added on the very first tick
     m_minTicksBetweenProtestors = fmax(25, 200 - getLevel());
-    m_targetNumOfProtestors = fmin(15, 2 + getLevel() * 1.5);
     
 
     //Create the tunnelman
@@ -37,37 +34,15 @@ int StudentWorld::move(){
     
     updateDisplayText();
     
-    if(m_player->getLiveStatus())
-        m_player->doSomething();
-    
-    for(int i = 0; i != m_gameObjects.size(); i++){
-    
-        if(m_gameObjects[i]->getLiveStatus()){
-            m_gameObjects[i]->doSomething();
-            if(!m_player->getLiveStatus()){
-                decLives();
-                return GWSTATUS_PLAYER_DIED;
-            }
-            if(playerCompletedLevel()){
-                playSound(SOUND_FINISHED_LEVEL);
-                return GWSTATUS_FINISHED_LEVEL;
-            }
-        }
-    }
-
-    for(int i = 0; i != m_gameObjects.size(); i++){
-        if(!m_gameObjects[i]->getLiveStatus()){
-            removeActor(m_gameObjects[i]);
-            i--;
-        }
-    }
-    
+    //ADD ACTORS IF NEEDED
     
     //Add protestors if needed
-    if(m_ticksSinceLastProtestorAdded > m_minTicksBetweenProtestors && m_numProtestors < m_targetNumOfProtestors){
+    int targetNumOfProtestors = fmin(15, 2 + getLevel() * 1.5);
+    if(m_ticksSinceLastProtestorAdded >= m_minTicksBetweenProtestors && m_numProtestors < targetNumOfProtestors){
         
-        int p = fmin(90, getLevel()*10 + 30);
         int i = rand() % 100 + 1;
+        int p = fmin(90, getLevel()*10 + 30);
+        
         if(i <= p){
             addActor(new HardcoreProtestor(this));
         }
@@ -77,9 +52,7 @@ int StudentWorld::move(){
         m_ticksSinceLastProtestorAdded = -1;
         m_numProtestors++;
     }
-    //UPDATE TICK COUNTS
     m_ticksSinceLastProtestorAdded++;
-    
     
     //Add sonar/water if needed
     int g = getLevel() * 25 + 300;
@@ -103,6 +76,36 @@ int StudentWorld::move(){
             addActor(a);
         }
     }
+    
+    if(m_player->getLiveStatus())
+        m_player->doSomething();
+    else{
+        decLives();
+        return GWSTATUS_PLAYER_DIED;
+    }
+    
+    for(int i = 0; i != m_gameObjects.size(); i++){
+    
+        if(m_gameObjects[i]->getLiveStatus()){
+            m_gameObjects[i]->doSomething();
+            if(!m_player->getLiveStatus()){
+                decLives();
+                return GWSTATUS_PLAYER_DIED;
+            }
+            if(playerCompletedLevel()){
+                playSound(SOUND_FINISHED_LEVEL);
+                return GWSTATUS_FINISHED_LEVEL;
+            }
+        }
+    }
+
+    for(int i = 0; i != m_gameObjects.size(); i++){
+        if(!m_gameObjects[i]->getLiveStatus()){
+            removeActor(m_gameObjects[i]);
+            i--;
+        }
+    }
+    
     
     if(m_player->getLiveStatus())
         return GWSTATUS_CONTINUE_GAME;
@@ -204,19 +207,6 @@ void StudentWorld::illuminateOilField(int x, int y, int radius) {
     }
 }
 
-
-vector<Actor*> StudentWorld::findActorsWithinRadius(int x, int y, int radius, char c){
-    vector<Actor*> output;
-    for(int i = 0; i != m_gameObjects.size(); i++){
-        Actor* a = m_gameObjects[i];
-        if(a->getGameID() == c && a->getLiveStatus()){
-            if(distanceApart(x, y, a->getX(), a->getY()) <= radius)
-                output.push_back(a);
-        }
-    }
-    return output;
-}
-
 vector<Actor*> StudentWorld::findProtestorsWithinRadius(int x, int y, int radius){
     vector<Actor*> output;
     for(int i = 0; i != m_gameObjects.size(); i++){
@@ -249,14 +239,12 @@ bool StudentWorld::killProtestorsWithinRadius(int x, int y, int radius){
 }
 
 bool StudentWorld::squirtProtestorWithinRadius(int x, int y, int radius){
-    for(int i = 0; i != m_gameObjects.size(); i++){
-        Actor* a = m_gameObjects[i];
-        vector<Actor*> doomed = findProtestorsWithinRadius(x, y, radius);
-        if(doomed.size() != 0){
-            doomed[0]->annoy(squirtDamage); //Allocate points in the protestor::annoy function
-            return true;
-        }
+    vector<Actor*> doomed = findProtestorsWithinRadius(x, y, radius);
+    if(doomed.size() != 0){
+        doomed[0]->annoy(2); //Allocate points in the protestor::annoy function
+        return true;
     }
+    
     return false;
 }
 
@@ -319,10 +307,10 @@ bool StudentWorld::willHitBoulderEdgeOrEarth(int x, int y, GraphObject::Directio
 }
 
 GraphObject::Direction StudentWorld::getDirectionToLocation(Actor* p, int xLoc, int yLoc){
-    
+    int maze[VIEW_HEIGHT][VIEW_WIDTH];
     for(int i = 0; i < VIEW_HEIGHT; i++){
         for(int j = 0; j < VIEW_WIDTH; j++){
-            m_maze[i][j] = 0;
+            maze[i][j] = 0;
         }
     }
     bool visited[VIEW_HEIGHT][VIEW_WIDTH];
@@ -343,22 +331,22 @@ GraphObject::Direction StudentWorld::getDirectionToLocation(Actor* p, int xLoc, 
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::up) && !visited[y+1][x]){
             visited[y+1][x] = true;
             q.push(mazeLocation(x, y+1));
-            m_maze[y+1][x] = m_maze[y][x] + 1;
+            maze[y+1][x] = maze[y][x] + 1;
         }
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::down) && !visited[y-1][x]){
             visited[y-1][x] = true;
             q.push(mazeLocation(x, y-1));
-            m_maze[y-1][x] = m_maze[y][x] + 1;
+            maze[y-1][x] = maze[y][x] + 1;
         }
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::right) && !visited[y][x+1]){
             visited[y][x+1] = true;
             q.push(mazeLocation(x+1, y));
-            m_maze[y][x+1] = m_maze[y][x] + 1;
+            maze[y][x+1] = maze[y][x] + 1;
         }
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::left) && !visited[y][x-1]){
             visited[y][x-1] = true;
             q.push(mazeLocation(x-1, y));
-            m_maze[y][x-1] = m_maze[y][x] + 1;
+            maze[y][x-1] = maze[y][x] + 1;
         }
     }
     
@@ -372,16 +360,16 @@ GraphObject::Direction StudentWorld::getDirectionToLocation(Actor* p, int xLoc, 
     int right = notValid;
     
     if(inField(protestorX, protestorY+1) && visited[protestorY+1][protestorX]){
-        up = m_maze[protestorY+1][protestorX];
+        up = maze[protestorY+1][protestorX];
     }
     if(inField(protestorX, protestorY-1) && visited[protestorY-1][protestorX]){
-        down = m_maze[protestorY-1][protestorX];
+        down = maze[protestorY-1][protestorX];
     }
     if(inField(protestorX+1, protestorY) && visited[protestorY][protestorX+1]){
-        right = m_maze[protestorY][protestorX+1];
+        right = maze[protestorY][protestorX+1];
     }
     if(inField(protestorX-1, protestorY) && visited[protestorY][protestorX-1]){
-        left = m_maze[protestorY][protestorX-1];
+        left = maze[protestorY][protestorX-1];
     }
     
     int lowestDir = up;
@@ -403,10 +391,12 @@ GraphObject::Direction StudentWorld::getDirectionToLocation(Actor* p, int xLoc, 
     
 }
 
-bool StudentWorld::hardCoreProtestorCanMoveTowardTunnelMan(Actor *p){
+bool StudentWorld::isXMovesAwayFromTunnelMan(Actor *p, int movesAway){
+    int maze[VIEW_HEIGHT][VIEW_WIDTH];
+    
     for(int i = 0; i < VIEW_HEIGHT; i++){
         for(int j = 0; j < VIEW_WIDTH; j++){
-            m_maze[i][j] = 0;
+            maze[i][j] = 0;
         }
     }
     bool visited[VIEW_HEIGHT][VIEW_WIDTH];
@@ -427,22 +417,22 @@ bool StudentWorld::hardCoreProtestorCanMoveTowardTunnelMan(Actor *p){
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::up) && !visited[y+1][x]){
             visited[y+1][x] = true;
             q.push(mazeLocation(x, y+1));
-            m_maze[y+1][x] = m_maze[y][x] + 1;
+            maze[y+1][x] = maze[y][x] + 1;
         }
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::down) && !visited[y-1][x]){
             visited[y-1][x] = true;
             q.push(mazeLocation(x, y-1));
-            m_maze[y-1][x] = m_maze[y][x] + 1;
+            maze[y-1][x] = maze[y][x] + 1;
         }
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::right) && !visited[y][x+1]){
             visited[y][x+1] = true;
             q.push(mazeLocation(x+1, y));
-            m_maze[y][x+1] = m_maze[y][x] + 1;
+            maze[y][x+1] = maze[y][x] + 1;
         }
         if(!willHitBoulderEdgeOrEarth(x, y, GraphObject::left) && !visited[y][x-1]){
             visited[y][x-1] = true;
             q.push(mazeLocation(x-1, y));
-            m_maze[y][x-1] = m_maze[y][x] + 1;
+            maze[y][x-1] = maze[y][x] + 1;
         }
     }
     
@@ -456,19 +446,19 @@ bool StudentWorld::hardCoreProtestorCanMoveTowardTunnelMan(Actor *p){
     int right = notValid;
     
     if(inField(protestorX, protestorY+1) && visited[protestorY+1][protestorX]){
-        up = m_maze[protestorY+1][protestorX];
+        up = maze[protestorY+1][protestorX];
     }
     if(inField(protestorX, protestorY-1) && visited[protestorY-1][protestorX]){
-        down = m_maze[protestorY-1][protestorX];
+        down = maze[protestorY-1][protestorX];
     }
     if(inField(protestorX+1, protestorY) && visited[protestorY][protestorX+1]){
-        right = m_maze[protestorY][protestorX+1];
+        right = maze[protestorY][protestorX+1];
     }
     if(inField(protestorX-1, protestorY) && visited[protestorY][protestorX-1]){
-        left = m_maze[protestorY][protestorX-1];
+        left = maze[protestorY][protestorX-1];
     }
     
-    if(up < 16 || down < 16 || left < 16 || right < 16)
+    if(up < movesAway || down < movesAway || left < movesAway || right < movesAway)
         return true;
     else
         return false; 
@@ -544,7 +534,7 @@ void StudentWorld::populateFieldWithEarth(){
     Earth* temp;
     //fill rows 0 through 59 of the oil field with Earth Objects (with exception of vertical shafts)
     for(int col = 0; col < VIEW_WIDTH; col++){
-        for(int row = 0; row < VIEW_HEIGHT-4; row++){
+        for(int row = 0; row < VIEW_HEIGHT-actorSize; row++){
             //If the current location falls outside of the central tunnel
             if((col < 30 || col > 33) || row < 4) {
                 temp = new Earth(this, col, row); //Create a new earth at the given location
@@ -555,13 +545,7 @@ void StudentWorld::populateFieldWithEarth(){
 }
 
 void StudentWorld::populateFieldWithBoulders(){
-    int numBoulders;
-    int alt = getLevel() / 2 + 2;
-    if(alt < 9)
-        numBoulders = alt;
-    else
-        numBoulders = 0;
-    
+    int numBoulders = fmin(getLevel() / 2 + 2, 9);
     
     for(int i = 0; i < numBoulders; i++){
         int x, y;
@@ -591,7 +575,7 @@ void StudentWorld::populateFieldWithNuggets(){
 }
 
 void StudentWorld::populateFieldWithBarrels(){
-    int numBarrels = fmin(21, 2 + getLevel());
+    int numBarrels = fmin(21, 2 + getLevel()); 
 
     m_numBarrels = numBarrels;
 
@@ -645,7 +629,52 @@ void StudentWorld::updateDisplayText(){
 }
 
 string StudentWorld::formatStats(int level, int lives, int health, int squirts, int gold, int barrelsLeft, int sonar, int score){
-    return "Lvl: " + to_string(level) + " Lives: " + to_string(lives) + " Hlth: " + to_string(health) + "% Wtr: " + to_string(squirts) + " Gld: " + to_string(gold) + " Oil Left: " + to_string(barrelsLeft) + " Sonar: " + to_string(sonar) + " Scr: " + to_string(score);
+    string flevel;
+    string flives;
+    string fhealth;
+    string fsquirts;
+    string fgold;
+    string fbarrelsLeft;
+    string fsonar;
+    string fscore;
+    
+    if(level / 10 == 0)
+        flevel = " " + to_string(level);
+    else
+        flevel = to_string(level);
+    
+    flives = to_string(lives);
+    fhealth = to_string(health) + "%";
+    
+    if(squirts / 10 == 0)
+        fsquirts = " " + to_string(squirts);
+    else
+        fsquirts = to_string(squirts);
+    
+    if(gold / 10 == 0)
+        fgold = " " + to_string(gold);
+    else
+        fgold = to_string(gold);
+    
+    if(barrelsLeft / 10 == 0)
+        fbarrelsLeft = " " + to_string(barrelsLeft);
+    else
+        fbarrelsLeft = to_string(barrelsLeft);
+    
+    if(sonar / 10 == 0)
+        fsonar = " " + to_string(sonar);
+    else
+        fsonar = to_string(sonar);
+    
+    int nDigits = to_string(score).size();
+    int spacesToAdd = 6 - nDigits;
+    for(int i = 0; i < spacesToAdd; i++){
+        fscore += "0";
+    }
+    fscore += to_string(score);
+    
+    
+    return "Lvl: " + flevel + " Lives: " + flives + " Hlth: " + fhealth +  " Wtr: " + fsquirts + " Gld: " + fgold + " Oil Left: " + fbarrelsLeft + " Sonar: " + fsonar + " Scr: " + fscore;
 }
 
 
@@ -653,5 +682,3 @@ GameWorld* createStudentWorld(string assetDir)
 {
     return new StudentWorld(assetDir);
 }
- 
-
